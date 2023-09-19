@@ -1,50 +1,42 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
-params.input = "README.md"
+params.input_spectra_folder = "/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_convert/mzML"
+params.input_datasets_folder = "/home/user/LAB_share/XianghuData/MS_Cluster_datasets/Swiss-prot/uniprot_sprot.fasta"
+
 
 TOOL_FOLDER = "$baseDir/bin"
 
-process processDataPython {
-    publishDir "./nf_output", mode: 'copy'
+
+process MSGFPLUS_search {
+
+    //container 'quay.io/biocontainers/thermorawfileparser:1.2.0--0'
 
     conda "$TOOL_FOLDER/conda_env.yml"
 
-    input:
-    file input 
-
-    output:
-    file 'python_output.tsv'
-
-    """
-    python $TOOL_FOLDER/python_script.py $input python_output.tsv
-    """
-}
-
-process processDataR {
+    memory { 4.GB * task.attempt }
+    errorStrategy 'retry'
+    maxRetries 5
     publishDir "./nf_output", mode: 'copy'
 
-    conda "$TOOL_FOLDER/conda_env_r.yml"
-
     input:
-    file input 
+    file spectra_file
+    path dataset_file
 
     output:
-    file 'R_output.txt'
-    file 'rpy2_output.txt'
+    file '*.mzid'
 
+    script:
     """
-    Rscript  $TOOL_FOLDER/R_script.R
-    python $TOOL_FOLDER/rpy2_script.py
+    java -jar $TOOL_FOLDER/MSGFPlus/MSGFPlus.jar -s ${spectra_file} -d ${dataset_file} -o ${spectra_file.baseName}.mzid
     """
 }
 
-workflow {
-    data = Channel.fromPath(params.input)
-    
-    // Outputting Python
-    processDataPython(data)
 
-    // Outputting R
-    processDataR(data)
+
+
+workflow {
+    spectra_files_ch = Channel.fromPath(params.input_spectra_folder+"/*.mzML")
+    dataset_ch = params.input_datasets_folder
+    MSGFPLUS_search(spectra_files_ch,dataset_ch)
 }
