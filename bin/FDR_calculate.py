@@ -1,5 +1,7 @@
 from pyteomics import mzid,auxiliary
 import csv
+import os
+
 # def is_decoy(psm, prefix="XXX_"):
 #
 #     # Get the list of protein accessions from the PSM
@@ -17,13 +19,11 @@ def get_msgf_evalue(psm):
     except (KeyError, ValueError):
         return float('inf')
 
-input_mzid_file_path = '../nf_output/EK_Q_10_2.mzid'
+input_mzid_file_path = '/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_results'
 
-psms = mzid.read(input_mzid_file_path)
-
-
+mzid_files = [os.path.join(input_mzid_file_path,f) for f in os.listdir(input_mzid_file_path) if f.lower().endswith('.mzid')]
 # Filter PSMs based on the desired spectrum-level FDR threshold
-filtered_psms = mzid.filter(psms,fdr = 0.01,key =get_msgf_evalue,is_decoy= is_decoy,decoy_prefix = "XXX_")
+filtered_psms = mzid.filter.chain.from_iterable(mzid_files,fdr = 0.01,key =get_msgf_evalue,is_decoy= is_decoy,decoy_prefix = "XXX_")
 
 
 # Function to extract relevant information for each PSM
@@ -33,6 +33,7 @@ def extract_psm_info(psm):
     peptide = psm['SpectrumIdentificationItem'][0]['PeptideSequence']
     proteins = [pe['accession'] for sii in psm['SpectrumIdentificationItem']
             for pe in sii['PeptideEvidenceRef']]
+    proteins = ','.join(proteins)
     charge = psm['SpectrumIdentificationItem'][0].get('chargeState', '')
     spec_prob = psm['SpectrumIdentificationItem'][0].get('MS-GF:SpecEValue', '')
     db_evalue = get_msgf_evalue(psm)
