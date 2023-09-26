@@ -1,8 +1,8 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
-params.input_spectra_folder = "/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_convert/mzML"
-params.input_datasets_folder = "/home/user/LAB_share/XianghuData/MS_Cluster_datasets/Swiss-prot/uniprot_sprot.fasta"
+params.input_spectra_folder = "/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_convert/mzML/"
+params.input_datasets_folder = "/home/user/research/MSGFPLUS_search_workflow/data/search_td.fasta"
 
 
 TOOL_FOLDER = "$baseDir/bin"
@@ -14,7 +14,7 @@ process MSGFPLUS_search {
 
     conda "$TOOL_FOLDER/conda_env.yml"
 
-    memory { 4.GB * task.attempt }
+    memory { 10.GB * task.attempt }
     errorStrategy 'retry'
     maxRetries 5
     publishDir "./nf_output", mode: 'copy'
@@ -28,7 +28,7 @@ process MSGFPLUS_search {
 
     script:
     """
-    java -jar $TOOL_FOLDER/MSGFPlus/MSGFPlus.jar -s ${spectra_file} -d ${dataset_file} -o ${spectra_file.baseName}.mzid
+    java -Xmx3500M -jar $TOOL_FOLDER/MSGFPlus/MSGFPlus.jar -s ${spectra_file} -d ${dataset_file} -decoy XXX -o ${spectra_file.baseName}.mzid
     """
 }
 
@@ -36,7 +36,7 @@ process MSGFPLUS_search {
 
 
 workflow {
-    spectra_files_ch = Channel.fromPath(params.input_spectra_folder+"/*.mzML")
+    spectra_files_ch = Channel.fromPath(params.input_spectra_folder+"/EK_Q_10_2.mzML")
     dataset_ch = params.input_datasets_folder
-    MSGFPLUS_search(spectra_files_ch,dataset_ch)
+    idMZ_ch = MSGFPLUS_search(spectra_files_ch,dataset_ch)
 }
