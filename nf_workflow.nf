@@ -29,7 +29,7 @@ process MSGFPLUS_search {
 
     script:
     """
-    java -Xmx3500M -jar $TOOL_FOLDER/MSGFPlus/MSGFPlus.jar -s ${spectra_file} -d ${dataset_file} -decoy XXX -o ${spectra_file.baseName}.mzid -t 30ppm
+    java -Xmx3500M -jar $TOOL_FOLDER/MSGFPlus/MSGFPlus.jar -s ${spectra_file} -d ${dataset_file} -o ${spectra_file.baseName}.mzid -t 30ppm -ntt 1
     """
 }
 
