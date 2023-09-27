@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
-params.input_spectra_folder = "/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_convert/mzML"
+params.input_spectra_folder = "/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD021518_convert/mzML"
 params.input_datasets_folder = "/home/user/research/MSGFPLUS_search_workflow/data/search_td.fasta"
 
 
