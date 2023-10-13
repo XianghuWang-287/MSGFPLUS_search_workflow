@@ -23,7 +23,7 @@ input_mzid_file_path = '/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD
 
 mzid_files = [os.path.join(input_mzid_file_path,f) for f in os.listdir(input_mzid_file_path) if f.lower().endswith('.mzid')]
 # Filter PSMs based on the desired spectrum-level FDR threshold
-filtered_psms = mzid.filter.chain.from_iterable(mzid_files,fdr = 0.01,key =get_msgf_evalue,is_decoy= is_decoy,decoy_prefix = "XXX_")
+filtered_psms = mzid.filter.chain.from_iterable(mzid_files,fdr = 0.01,key =get_msgf_evalue,decoy_prefix = "XXX_")
 
 
 # Function to extract relevant information for each PSM

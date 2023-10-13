@@ -23,11 +23,11 @@ input_mzid_file_path = '/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD
 
 psms = mzid.read(input_mzid_file_path)
 # Filter PSMs based on the desired spectrum-level FDR threshold
-filtered_psms = mzid.qvalues(psms,fdr = 0.01,key =get_msgf_evalue,is_decoy= is_decoy,decoy_prefix = "XXX_")
+filtered_psms = mzid.qvalues(psms,key =get_msgf_evalue,is_decoy= is_decoy,decoy_prefix = "XXX_",full_output=True)
 
 
 # Function to extract relevant information for each PSM
-def extract_psm_info(psm):
+def extract_psm_info(psm,score,qvalue):
     file_name = psm['name']
     scan = psm['scan number(s)']
     peptide = psm['SpectrumIdentificationItem'][0]['PeptideSequence']
@@ -38,6 +38,8 @@ def extract_psm_info(psm):
     spec_prob = psm['SpectrumIdentificationItem'][0].get('MS-GF:SpecEValue', '')
     db_evalue = get_msgf_evalue(psm)
     Frag_method = psm['SpectrumIdentificationItem'][0].get('AssumedDissociationMethod', '')
+    Qvalue=qvalue
+    Score = score
 
 
     return {
@@ -49,6 +51,8 @@ def extract_psm_info(psm):
         'Charge': charge,
         'SpecProb': spec_prob,
         'DB:EValue': db_evalue,
+        'Qvalue': qvalue,
+        'Score': score
     }
 
 
@@ -59,15 +63,15 @@ output_filtered_tsv_file_path = '../data/results/filtered.tsv'
 with open(output_filtered_tsv_file_path, 'w', newline='') as tsv_file:
     fieldnames = [
         'MzIDFileName', 'ScanNumber', 'FragMethod',
-        'Peptide', 'Protein', 'Charge', 'SpecProb', 'DB:EValue'
+        'Peptide', 'Protein', 'Charge', 'SpecProb', 'DB:EValue', 'Qvalue','Score'
     ]
     writer = csv.DictWriter(tsv_file, fieldnames=fieldnames, delimiter='\t')
     writer.writeheader()
 
     # Iterate over filtered PSMs and write the information to the TSV file
     for psm in filtered_psms:
-        if psm['q'] <0.01:
-            psm_info = extract_psm_info(psm)
+        if psm['q']<=0.01:
+            psm_info = extract_psm_info(psm['psm'],psm['score'],psm['q'])
             writer.writerow(psm_info)
 
 print('Filtered results saved to:', output_filtered_tsv_file_path)
