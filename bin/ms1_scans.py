@@ -62,7 +62,6 @@ def calculate_cluster_purity(cluster, matching_pairs_set):
                 continue
 
             if are_matching_spectra(spec1['#Filename'], spec1['#Scan'], spec2['#Scan'], matching_pairs_set):
-                print('yes')
                 matching_count += 1
 
         matching_fraction = matching_count / total_spectra
@@ -75,7 +74,7 @@ def calculate_cluster_purity(cluster, matching_pairs_set):
 
 
 
-def compare_scans(scan1, scan2, mass_tolerance=0.01, rt_tolerance=30):
+def compare_scans(scan1, scan2, mass_tolerance=0.01, rt_tolerance=60):
     mass_diff = abs(scan1[0] - scan2[0])
     rt_diff = abs(scan1[1] - scan2[1])
     return mass_diff <= mass_tolerance and rt_diff <= rt_tolerance
@@ -100,6 +99,8 @@ if __name__ == "__main__":
 
             matching_pairs_all_files.extend([(filename, pair[0], pair[1]) for pair in matching_pairs])
 
+    matching_pairs_all_files = [(f'mzML/{filename}', scan_start, scan_end) for filename, scan_start, scan_end in matching_pairs_all_files]
+
     matching_pairs_set = {(item[0], item[1], item[2]) for item in matching_pairs_all_files}
 
     cluster_purity = cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity(x, matching_pairs_set))
@@ -107,7 +108,6 @@ if __name__ == "__main__":
     cluster_size = cluster_results.groupby('#ClusterIdx').size()
 
     average_purity_by_cluster_size = cluster_purity.groupby(cluster_size).mean()
-
 
     plt.figure(figsize=(10, 6))
     plt.plot(average_purity_by_cluster_size.index, average_purity_by_cluster_size.values, alpha=0.5)
