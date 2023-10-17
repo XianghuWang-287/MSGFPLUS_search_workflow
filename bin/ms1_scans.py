@@ -51,7 +51,9 @@ def are_matching_spectra(filename, scan1, scan2,matching_pairs_set):
 def calculate_cluster_purity(cluster, matching_pairs_set):
     total_spectra = len(cluster)
     if total_spectra == 0:
-        return 0.0
+        return 1
+    if total_spectra ==1:
+        return 1
 
     max_matching_fraction = 0.0
 
@@ -68,6 +70,9 @@ def calculate_cluster_purity(cluster, matching_pairs_set):
 
         if matching_fraction > max_matching_fraction:
             max_matching_fraction = matching_fraction
+
+    if max_matching_fraction == 0:
+        return 1/total_spectra
 
     return max_matching_fraction
 
@@ -110,7 +115,7 @@ if __name__ == "__main__":
     average_purity_by_cluster_size = cluster_purity.groupby(cluster_size).mean()
 
     plt.figure(figsize=(10, 6))
-    plt.plot(average_purity_by_cluster_size.index, average_purity_by_cluster_size.values, alpha=0.5)
+    plt.plot(average_purity_by_cluster_size.index, average_purity_by_cluster_size.values, marker='o')
     plt.xlabel('Cluster Size (Number of Spectra)')
     plt.ylabel('Average Cluster Purity')
     plt.title('Average Cluster Purity by Cluster Size')
