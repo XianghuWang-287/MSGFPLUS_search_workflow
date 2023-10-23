@@ -115,7 +115,8 @@ if __name__ == "__main__":
     average_purity_by_cluster_size = cluster_purity.groupby(cluster_size).mean()
 
     plt.figure(figsize=(10, 6))
-    plt.plot(average_purity_by_cluster_size.index, average_purity_by_cluster_size.values, marker='o')
+    #plt.plot(average_purity_by_cluster_size.index, average_purity_by_cluster_size.values, marker='o')
+    plt.scatter(cluster_size, cluster_purity, alpha=0.5)
     plt.xlabel('Cluster Size (Number of Spectra)')
     plt.ylabel('Average Cluster Purity')
     plt.title('Average Cluster Purity by Cluster Size')
