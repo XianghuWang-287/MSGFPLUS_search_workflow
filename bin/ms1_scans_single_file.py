@@ -87,9 +87,6 @@ def calculate_cluster_purity(cluster, matching_pairs_set):
     for filename, count in file_counts.items():
         largest_component_size = max((comp.number_of_nodes() for comp in S if any(comp.nodes[node]['filename'] == filename for node in comp.nodes())), default=1)
         fraction = largest_component_size / count
-        if fraction>1:
-            print("total_size",G.number_of_nodes())
-            print("largeest component size",largest_component_size)
         max_fraction = max(max_fraction, fraction)
 
     return max_fraction
