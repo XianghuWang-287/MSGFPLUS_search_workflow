@@ -91,7 +91,34 @@ def calculate_cluster_purity(cluster, matching_pairs_set):
 
     return max_fraction
 
+def calculate_cluster_purity_weighted_avg(cluster, matching_pairs_set):
+    # Create a matching network considering only matching pairs with the same filename and scan number
+    G = create_matching_network(cluster, matching_pairs_set)
 
+    # Get connected components
+    components = list(nx.connected_components(G))
+
+    S = [G.subgraph(c).copy() for c in nx.connected_components(G)]
+
+    # Calculate the count of each filename in the matching pairs within the cluster
+    file_counts = Counter(cluster['#Filename'])
+
+    frequencies = []
+    values = []
+    # Calculate the fraction of the largest component for each file
+    for filename, count in file_counts.items():
+        largest_component_size = max((comp.number_of_nodes() for comp in S if any(comp.nodes[node]['filename'] == filename for node in comp.nodes())), default=1)
+        fraction = largest_component_size / count
+        frequencies.append(count)
+        values.append(fraction)
+    weighted_sum = sum(value * frequency for value, frequency in zip(values, frequencies))
+
+    # Calculate the total frequency
+    total_frequency = sum(frequencies)
+
+    # Calculate the weighted average
+    weighted_average = weighted_sum / total_frequency
+    return weighted_average
 
 def compare_scans(scan1, scan2, mass_tolerance=0.01, rt_tolerance=30):
     mass_diff = abs(scan1[0] - scan2[0])
