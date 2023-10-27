@@ -8,7 +8,6 @@ import pymzml
 from  xml.etree.ElementTree import ParseError
 import networkx as nx
 from collections import Counter
-import matplotlib.pyplot as plt
 
 def get_ms1_data(mzml_file):
     ms1_data = []
@@ -144,7 +143,7 @@ if __name__ == "__main__":
 
     cluster_size = cluster_results.groupby('#ClusterIdx').size()
 
-    purity_by_cluster_size = pd.DataFrame({'ClusterSize': cluster_size, 'ClusterPurity': cluster_purity})
+    purity_by_cluster_index = pd.DataFrame({'ClusterSize': cluster_size, 'ClusterPurity': cluster_purity})
 
     #constructing the db results
     database_results = pd.read_csv('./filtered.tsv', sep='\t')  # Adjust file path and format accordingly
@@ -167,14 +166,14 @@ if __name__ == "__main__":
         lambda x: x.value_counts().max() / len(x))
 
     # Calculate the number of spectra in each cluster
-    cluster_size_db = merged_data.groupby('#ClusterIdx').size()
+    cluster_indices_db = merged_data['#ClusterIdx'].unique()
 
-    purity_by_cluster_size_db = pd.DataFrame({'ClusterSize': cluster_size_db, 'ClusterPurity': cluster_purity_db})
+    purity_by_cluster_index_db = pd.DataFrame({'Cluster_indices': cluster_indices_db, 'ClusterPurity': cluster_purity_db})
 
-    merged_purity_df = purity_by_cluster_size_db.merge(purity_by_cluster_size, on='ClusterIndex', suffixes=('_db', '_ms1'), how='inner')
+    merged_purity_df = purity_by_cluster_index_db.merge(purity_by_cluster_index, on='#ClusterIdx', suffixes=('_db', '_ms1'), how='inner')
 
     # Extract the common cluster indices and ClusterPurity values
-    common_cluster_indices = merged_purity_df['ClusterIndex']
+    common_cluster_indices = merged_purity_df['Cluster_indices']
     cluster_purity_db = merged_purity_df['ClusterPurity_db']
     cluster_purity_ms1 = merged_purity_df['ClusterPurity_ms1']
 
@@ -200,6 +199,42 @@ if __name__ == "__main__":
     plt.legend()
 
     plt.grid(True)
+    plt.show()
+
+    tolerance = 0.5
+    # List clusters not within the tolerance
+    clusters_not_within_tolerance = []
+    for i in range(len(common_cluster_indices)):
+        purity1 = cluster_purity_db.iloc[i]
+        purity2 = cluster_purity_ms1.iloc[i]
+        if abs(purity1 - purity2) > tolerance:
+            clusters_not_within_tolerance.append(common_cluster_indices.iloc[i])
+
+    cluster_peptide_portion = merged_data.groupby('#ClusterIdx')['Peptide'].value_counts(normalize=True)
+
+    num_cols = 5
+
+    num_clusters = len(clusters_not_within_tolerance)
+    num_rows = int(np.ceil(num_clusters / num_cols))
+
+    # Create subplots
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=(20 , 5 * num_rows))
+
+    # Flatten the axes array and iterate through the first 100 clusters to plot the pie chart
+    for i, cluster_idx in enumerate(clusters_not_within_tolerance):
+        portion_data = cluster_peptide_portion.loc[cluster_idx]
+        unique_peptide_types_cluster = portion_data.index
+        row = i // num_cols
+        col = i % num_cols
+        ax = axes[row, col]
+        ax.pie(portion_data, labels=unique_peptide_types_cluster, autopct='%1.1f%%')
+        ax.set_title(f'Cluster {cluster_idx} Peptide Fraction')
+
+    # Hide empty subplots if any
+    for i in range(num_clusters, num_rows * num_cols):
+        fig.delaxes(axes.flatten()[i])
+
+    plt.tight_layout()
     plt.show()
 
 
