@@ -65,8 +65,12 @@ def calculate_cluster_purity(cluster, matching_pairs_set):
 
     # Get connected components
     components = list(nx.connected_components(G))
-    if len(components) ==0:
-        return 0
+    # if len(components) ==0:
+    #     return 0
+
+    for node in G.nodes:
+        if node not in [c for component in components for c in component]:
+            components.append({node})
 
     S = [G.subgraph(c).copy() for c in nx.connected_components(G)]
 
@@ -182,7 +186,7 @@ if __name__ == "__main__":
 
     plt.figure(figsize=(10, 6))
 
-    plt.scatter(cluster_purity_db, cluster_purity_ms1, marker='o', color='blue', label='DF1 vs. DF2')
+    plt.scatter(cluster_purity_db, cluster_purity_ms1, marker='o', color='blue', label='db results vs. ms1 results')
 
     # Annotate each point with common cluster indices, avoiding overlaps
     for i, cluster_index in enumerate(common_cluster_indices):
@@ -196,8 +200,8 @@ if __name__ == "__main__":
 
         plt.annotate(cluster_index, (x + x_offset, y + y_offset))
 
-    plt.xlabel('Cluster Purity in DF1')
-    plt.ylabel('Cluster Purity in DF2')
+    plt.xlabel('Cluster Purity in db results')
+    plt.ylabel('Cluster Purity in ms1 results')
     plt.title('Scatter Plot of Cluster Purity')
     plt.legend()
 
