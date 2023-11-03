@@ -65,6 +65,8 @@ def calculate_cluster_purity(cluster, matching_pairs_set):
 
     # Get connected components
     components = list(nx.connected_components(G))
+    if len(components) ==0:
+        return 0
 
     S = [G.subgraph(c).copy() for c in nx.connected_components(G)]
 
@@ -205,7 +207,7 @@ if __name__ == "__main__":
     x= cluster_purity_db
     y= cluster_purity_ms1
 
-    heatmap, xedges, yedges = np.histogram2d(x, y, bins=100, range=[[0, 1], [0, 1]])
+    heatmap, xedges, yedges = np.histogram2d(x, y, bins=20, range=[[0, 1], [0, 1]])
 
     # Transpose the heatmap
     heatmap = heatmap.T
@@ -274,10 +276,8 @@ if __name__ == "__main__":
     num_clusters = len(clusters_within_tolerance[0:100])
     num_rows = int(np.ceil(num_clusters / num_cols))
 
-    # Create subplots
     fig, axes = plt.subplots(num_rows, num_cols, figsize=(20, 5 * num_rows))
 
-    # Flatten the axes array and iterate through the first 100 clusters to plot the pie chart
     for i, cluster_idx in enumerate(clusters_within_tolerance[0:100]):
         portion_data = cluster_peptide_portion.loc[cluster_idx]
         unique_peptide_types_cluster = portion_data.index
