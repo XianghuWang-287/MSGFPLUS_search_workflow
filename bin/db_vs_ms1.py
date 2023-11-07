@@ -45,13 +45,14 @@ def create_matching_network(cluster, matching_pairs_set):
     G = nx.Graph()
 
     for _, spec1 in cluster.iterrows():
+        node_a =f"{spec1['#Filename']}_{spec1['#Scan']}"
+        G.add_node(node_a, filename=spec1['#Filename'])
         for _, spec2 in cluster.iterrows():
             if spec1['#Filename'] != spec2['#Filename']:
                 continue
-
             if are_matching_spectra(spec1['#Filename'], spec1['#Scan'], spec2['#Scan'], matching_pairs_set):
-                node_a =f"{spec1['#Filename']}_{spec1['#Filename']}"
-                node_b =f"{spec2['#Filename']}_{spec2['#Filename']}"
+                node_a =f"{spec1['#Filename']}_{spec1['#Scan']}"
+                node_b =f"{spec2['#Filename']}_{spec2['#Scan']}"
                 G.add_node(node_a,filename=spec1['#Filename'])
                 G.add_node(node_b,filename=spec2['#Filename'])
                 G.add_edge(node_a,node_b)
@@ -65,8 +66,7 @@ def calculate_cluster_purity(cluster, matching_pairs_set):
 
     # Get connected components
     components = list(nx.connected_components(G))
-    # if len(components) ==0:
-    #     return 0
+
 
     for node in G.nodes:
         if node not in [c for component in components for c in component]:
@@ -81,7 +81,7 @@ def calculate_cluster_purity(cluster, matching_pairs_set):
 
     # Calculate the fraction of the largest component for each file
     for filename, count in file_counts.items():
-        largest_component_size = max((comp.number_of_nodes() for comp in S if any(comp.nodes[node]['filename'] == filename for node in comp.nodes())), default=1)
+        largest_component_size = max((comp.number_of_nodes() for comp in S if any(comp.nodes[node]['filename'] == filename for node in comp.nodes())), default=0)
         fraction = largest_component_size / count
         max_fraction = max(max_fraction, fraction)
 
@@ -94,6 +94,10 @@ def calculate_cluster_purity_weighted_avg(cluster, matching_pairs_set):
     # Get connected components
     components = list(nx.connected_components(G))
 
+    for node in G.nodes:
+        if node not in [c for component in components for c in component]:
+            components.append({node})
+
     S = [G.subgraph(c).copy() for c in nx.connected_components(G)]
 
     # Calculate the count of each filename in the matching pairs within the cluster
@@ -103,7 +107,7 @@ def calculate_cluster_purity_weighted_avg(cluster, matching_pairs_set):
     values = []
     # Calculate the fraction of the largest component for each file
     for filename, count in file_counts.items():
-        largest_component_size = max((comp.number_of_nodes() for comp in S if any(comp.nodes[node]['filename'] == filename for node in comp.nodes())), default=1)
+        largest_component_size = max((comp.number_of_nodes() for comp in S if any(comp.nodes[node]['filename'] == filename for node in comp.nodes())), default=0)
         fraction = largest_component_size / count
         frequencies.append(count)
         values.append(fraction)
@@ -116,7 +120,7 @@ def calculate_cluster_purity_weighted_avg(cluster, matching_pairs_set):
     weighted_average = weighted_sum / total_frequency
     return weighted_average
 
-def compare_scans(scan1, scan2, mass_tolerance=0.01, rt_tolerance=30):
+def compare_scans(scan1, scan2, mass_tolerance=1.5, rt_tolerance=60):
     mass_diff = abs(scan1[0] - scan2[0])
     rt_diff = abs(scan1[1] - scan2[1])
     return mass_diff <= mass_tolerance and rt_diff <= rt_tolerance
@@ -127,6 +131,13 @@ if __name__ == "__main__":
     folder_path = '/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_convert/mzML'
 
     cluster_results = pd.read_csv('/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_results/msculster_results/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+
+    cluster_sizes = cluster_results.groupby('#ClusterIdx').size()
+
+    clusters_filter_index = cluster_sizes[cluster_sizes >= 6].index
+
+    cluster_results = cluster_results[cluster_results['#ClusterIdx'].isin(clusters_filter_index)]
+
     matching_pairs_all_files = []
 
     for filename in os.listdir(folder_path):
@@ -146,7 +157,7 @@ if __name__ == "__main__":
 
     matching_pairs_set = {(item[0], item[1], item[2]) for item in matching_pairs_all_files}
 
-    cluster_purity = cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity(x, matching_pairs_set))
+    cluster_purity = cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set))
 
     cluster_indices = cluster_results['#ClusterIdx'].unique()
 
@@ -155,14 +166,17 @@ if __name__ == "__main__":
     #constructing the db results
     database_results = pd.read_csv('./filtered.tsv', sep='\t')  # Adjust file path and format accordingly
     database_results['MzIDFileName'] = 'mzML/' + database_results['MzIDFileName']
-    unique_spectra_db = database_results[['MzIDFileName', 'ScanNumber']].drop_duplicates()
+    # Filter database results based on "DB:EValue" column
+    filtered_database_results = database_results[database_results['DB:EValue'] < 0.002]
 
-    # Filter cluster_results to only include spectra present in database results
+    # Extract unique spectra
+    unique_spectra_db = filtered_database_results[['MzIDFileName', 'ScanNumber']].drop_duplicates()
+
+    # Filter cluster_results to only include spectra present in filtered database results
     filtered_cluster_results = cluster_results.merge(unique_spectra_db,
                                                      left_on=['#Filename', '#Scan'],
                                                      right_on=['MzIDFileName', 'ScanNumber'],
                                                      how='inner')
-
     # Merge the filtered clusters with the corresponding peptide identifications based on filename, scan number, and charge
     merged_data = pd.merge(filtered_cluster_results, database_results,
                            left_on=['#Filename', '#Scan', '#Charge'],
@@ -297,6 +311,8 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     plt.show()
+    print(len(clusters_within_tolerance))
+    print(len(clusters_not_within_tolerance))
 
 
 
