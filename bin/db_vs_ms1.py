@@ -59,6 +59,24 @@ def create_matching_network(cluster, matching_pairs_set):
 
     return G
 
+def create_matching_network_across_files(cluster,tolerence):
+    G = nx.Graph()
+
+    for _, spec1 in cluster.iterrows():
+        node_a =f"{spec1['#Filename']}_{spec1['#Scan']}"
+        G.add_node(node_a, filename=spec1['#Filename'])
+        for _, spec2 in cluster.iterrows():
+            if (spec1['#Filename'] == spec2['#Filename'] and spec1['#Scan'] == spec2['#Scan']):
+                continue
+            if abs(spec1['']):
+                node_a =f"{spec1['#Filename']}_{spec1['#Scan']}"
+                node_b =f"{spec2['#Filename']}_{spec2['#Scan']}"
+                G.add_node(node_a,filename=spec1['#Filename'])
+                G.add_node(node_b,filename=spec2['#Filename'])
+                G.add_edge(node_a,node_b)
+
+    return G
+
 # Function to calculate purity for a cluster
 def calculate_cluster_purity(cluster, matching_pairs_set):
     # Create a matching network considering only matching pairs with the same filename and scan number
@@ -120,7 +138,7 @@ def calculate_cluster_purity_weighted_avg(cluster, matching_pairs_set):
     weighted_average = weighted_sum / total_frequency
     return weighted_average
 
-def compare_scans(scan1, scan2, mass_tolerance=1.5, rt_tolerance=60):
+def compare_scans(scan1, scan2, mass_tolerance=0.01, rt_tolerance=65):
     mass_diff = abs(scan1[0] - scan2[0])
     rt_diff = abs(scan1[1] - scan2[1])
     return mass_diff <= mass_tolerance and rt_diff <= rt_tolerance
@@ -130,11 +148,13 @@ if __name__ == "__main__":
     database_results = pd.read_csv('./filtered.tsv', sep='\t')  # Adjust file path and format accordingly
     folder_path = '/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_convert/mzML'
 
-    cluster_results = pd.read_csv('/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_results/msculster_results/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+    #cluster_results = pd.read_csv('/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_results/msculster_results/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+
+    cluster_results = pd.read_csv('../data/results/nf_output/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
 
     cluster_sizes = cluster_results.groupby('#ClusterIdx').size()
 
-    clusters_filter_index = cluster_sizes[cluster_sizes >= 6].index
+    clusters_filter_index = cluster_sizes[cluster_sizes >= 7].index
 
     cluster_results = cluster_results[cluster_results['#ClusterIdx'].isin(clusters_filter_index)]
 
@@ -182,6 +202,14 @@ if __name__ == "__main__":
                            left_on=['#Filename', '#Scan', '#Charge'],
                            right_on=['MzIDFileName', 'ScanNumber', 'Charge'],
                            how='inner')
+
+    db_sizes = merged_data.groupby('#ClusterIdx').size()
+
+    merged_filter_index = db_sizes[db_sizes >= 7].index
+
+    merged_data = merged_data[merged_data['#ClusterIdx'].isin(merged_filter_index)]
+    #handle the "I" and "L" replacement case
+    merged_data['Peptide'] = merged_data['Peptide'].str.replace('I', 'L')
 
     cluster_purity_db = merged_data.groupby('#ClusterIdx')['Peptide'].apply(
         lambda x: x.value_counts().max() / len(x))
