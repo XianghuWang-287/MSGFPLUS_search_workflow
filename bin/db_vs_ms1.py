@@ -138,7 +138,7 @@ def calculate_cluster_purity_weighted_avg(cluster, matching_pairs_set):
     weighted_average = weighted_sum / total_frequency
     return weighted_average
 
-def compare_scans(scan1, scan2, mass_tolerance=0.01, rt_tolerance=65):
+def compare_scans(scan1, scan2, mass_tolerance=0.01, rt_tolerance=240):
     mass_diff = abs(scan1[0] - scan2[0])
     rt_diff = abs(scan1[1] - scan2[1])
     return mass_diff <= mass_tolerance and rt_diff <= rt_tolerance
@@ -157,7 +157,8 @@ if __name__ == "__main__":
     clusters_filter_index = cluster_sizes[cluster_sizes >= 7].index
 
     cluster_results = cluster_results[cluster_results['#ClusterIdx'].isin(clusters_filter_index)]
-
+    #handle the new version workflow filename issue
+    cluster_results['#Filename'] = cluster_results['#Filename'].str.replace('input_spectra', 'mzML')
     matching_pairs_all_files = []
 
     for filename in os.listdir(folder_path):
