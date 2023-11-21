@@ -138,7 +138,40 @@ def calculate_cluster_purity_weighted_avg(cluster, matching_pairs_set):
     weighted_average = weighted_sum / total_frequency
     return weighted_average
 
-def compare_scans(scan1, scan2, mass_tolerance=0.01, rt_tolerance=180):
+def calculate_cluster_purity_avg(cluster, matching_pairs_set):
+    # Create a matching network considering only matching pairs with the same filename and scan number
+    G = create_matching_network(cluster, matching_pairs_set)
+
+    # Get connected components
+    components = list(nx.connected_components(G))
+
+    for node in G.nodes:
+        if node not in [c for component in components for c in component]:
+            components.append({node})
+
+    S = [G.subgraph(c).copy() for c in nx.connected_components(G)]
+
+    # Calculate the count of each filename in the matching pairs within the cluster
+    file_counts = Counter(cluster['#Filename'])
+
+    frequencies = []
+    values = []
+    # Calculate the fraction of the largest component for each file
+    for filename, count in file_counts.items():
+        largest_component_size = max((comp.number_of_nodes() for comp in S if any(comp.nodes[node]['filename'] == filename for node in comp.nodes())), default=0)
+        fraction = largest_component_size / count
+        frequencies.append(count)
+        values.append(fraction)
+    total_purity = sum(values)
+
+    # Calculate the total frequency
+    total_frequency = sum(frequencies)
+
+    # Calculate the weighted average
+    average = total_purity / total_frequency
+    return average
+
+def compare_scans(scan1, scan2, mass_tolerance=0.01, rt_tolerance=65):
     mass_diff = abs(scan1[0] - scan2[0])
     rt_diff = abs(scan1[1] - scan2[1])
     return mass_diff <= mass_tolerance and rt_diff <= rt_tolerance
@@ -178,7 +211,7 @@ if __name__ == "__main__":
 
     matching_pairs_set = {(item[0], item[1], item[2]) for item in matching_pairs_all_files}
 
-    cluster_purity = cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity(x, matching_pairs_set))
+    cluster_purity = cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_avg(x, matching_pairs_set))
 
     cluster_indices = cluster_results['#ClusterIdx'].unique()
 
