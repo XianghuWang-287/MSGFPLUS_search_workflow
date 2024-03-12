@@ -18,7 +18,7 @@ def calculate_cluster_purity(cluster):
     return max_fraction
 
 # Load cluster results
-cluster_results = pd.read_csv('/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_results/msculster_results/clustering/clusterinfo.tsv', sep='\t')  # Adjust file path and format accordingly
+cluster_results = pd.read_csv('/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_results/msculster_results/clustering/mscluster_clusterinfo.tsv', sep='\t')  # Adjust file path and format accordingly
 
 # Load database search results
 database_results = pd.read_csv('./filtered.tsv', sep='\t')  # Adjust file path and format accordingly

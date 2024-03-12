@@ -13,6 +13,8 @@ import pickle
 import copy
 from tqdm import tqdm
 from collections import defaultdict
+from multiprocessing import Pool
+from functools import partial
 
 method_dic = {'mscluster':{'filename':'#Filename','scan':'#Scan','mass':'#ParentMass','rt_time':'#RetTime'},
               'falcon':{'filename':'filename','scan':'scan','mass':'precursor_mz','rt_time':'retention_time'},
@@ -49,7 +51,7 @@ def are_matching_spectra(filename, scan1, scan2,matching_pairs_set):
     return (filename, scan1, scan2) in matching_pairs_set
 
 
-def create_matching_network(cluster, matching_pairs_set,method):
+def create_matching_network(cluster, method):
     G = nx.Graph()
 
     row_indices = range(len(cluster))
@@ -122,11 +124,11 @@ def calculate_max_component_per_file(G):
     return dict(max_component_sizes)
 
 # Function to calculate purity for a cluster
-def calculate_cluster_purity(cluster, matching_pairs_set,method):
+def calculate_cluster_purity(cluster,method):
     if len(cluster) == 1:
         return 1
     # Create a matching network considering only matching pairs with the same filename and scan number
-    G = create_matching_network(cluster, matching_pairs_set,method)
+    G = create_matching_network(cluster, method)
 
     max_component_sizes = calculate_max_component_per_file(G)
     # Calculate the count of each filename in the matching pairs within the cluster
@@ -141,11 +143,12 @@ def calculate_cluster_purity(cluster, matching_pairs_set,method):
 
     return max_fraction
 
-def calculate_cluster_purity_weighted_avg(cluster, matching_pairs_set,method):
+def calculate_cluster_purity_weighted_avg(task,method):
+    _,cluster = task
     if len(cluster) == 1:
         return 1
     # Create a matching network considering only matching pairs with the same filename and scan number
-    G = create_matching_network(cluster, matching_pairs_set,method)
+    G = create_matching_network(cluster, method)
 
     max_component_sizes = calculate_max_component_per_file(G)
 
@@ -169,11 +172,11 @@ def calculate_cluster_purity_weighted_avg(cluster, matching_pairs_set,method):
     weighted_average = weighted_sum / total_frequency
     return weighted_average
 
-def calculate_cluster_purity_avg(cluster, matching_pairs_set,method):
+def calculate_cluster_purity_avg(cluster,method):
     if len(cluster) == 1:
         return 1
     # Create a matching network considering only matching pairs with the same filename and scan number
-    G = create_matching_network(cluster, matching_pairs_set,method)
+    G = create_matching_network(cluster,method)
 
     # Get connected components
     max_component_sizes = calculate_max_component_per_file(G)
@@ -212,18 +215,32 @@ def assign_size_range_bin(size):
             upper_limit *= 2
         return f"{upper_limit//2+1} to {upper_limit}"
 
-def mscluster_purity(cluster_results,matching_pairs_set):
+
+def apply_parallel_with_tqdm(groups, func, method):
+    tasks = [(name, group) for name, group in groups]  # Ensure tasks are prepared as tuples
+    partial_func = partial(func, method=method)
+
+    with Pool(processes=28) as pool:
+        result_list = []
+        for result in tqdm(pool.imap(partial_func, tasks), total=len(tasks)):
+            result_df = pd.DataFrame([result])
+            result_list.append(result_df)
+
+    return pd.concat(result_list, axis=0)
+def mscluster_purity(cluster_results):
     #handle the new version workflow filename issue
-    cluster_results['#Filename'] = cluster_results['#Filename'].str.replace('input_spectra', 'mzML')
+    cluster_results['#Filename'] = cluster_results['#Filename'].str.replace('input_spectra', 'mzml')
 
-    return cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set,'mscluster')), cluster_results.groupby('#ClusterIdx').size()
+    #return cluster_results.groupby('#ClusterIdx').progress_apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set,'mscluster')), cluster_results.groupby('#ClusterIdx').size()
+    return apply_parallel_with_tqdm(cluster_results.groupby('#ClusterIdx'),calculate_cluster_purity_weighted_avg,'mscluster'), cluster_results.groupby('#ClusterIdx').size()
 
-def falcon_purity(cluster_results,matching_pairs_set):
-    return cluster_results.groupby('cluster').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set,'falcon')), cluster_results.groupby('cluster').size()
-def maracluster_purity(cluster_results,matching_pairs_set):
-    return cluster_results.groupby('cluster').apply(
-        lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set, 'maracluster')), cluster_results.groupby(
-        'cluster').size()
+def falcon_purity(cluster_results):
+    #return cluster_results.groupby('cluster').progress_apply(lambda x: calculate_cluster_purity_weighted_avg(x,'falcon')), cluster_results.groupby('cluster').size()
+    return apply_parallel_with_tqdm(cluster_results.groupby('cluster'), calculate_cluster_purity_weighted_avg, 'falcon'), cluster_results.groupby('cluster').size()
+def maracluster_purity(cluster_results):
+    #return cluster_results.groupby('cluster').progress_apply(lambda x: calculate_cluster_purity_weighted_avg(x, 'maracluster')), cluster_results.groupby('cluster').size()
+    return apply_parallel_with_tqdm(cluster_results.groupby('cluster'), calculate_cluster_purity_weighted_avg,
+                                    'maracluster'), cluster_results.groupby('cluster').size()
 def generate_matching_pairs_set_file(folder_path,data_folder_path):
     matching_pairs_all_files = []
     for filename in tqdm(os.listdir(folder_path)):
@@ -246,40 +263,44 @@ def generate_matching_pairs_set_file(folder_path,data_folder_path):
         pickle.dump(matching_pairs_set, file)
     return matching_pairs_set
 
-def mscluster_merge(cluster_results,database_results):
-    cluster_results['#Filename'] = cluster_results['#Filename'].str.replace('input_spectra', 'mzML')
+def mscluster_merge(cluster_results):
+    cluster_results['#Filename'] = cluster_results['#Filename'].str.replace('input_spectra', 'mzml')
     cluster_results['#RetTime'] = cluster_results['#RetTime']/60
-    database_results['MzIDFileName'] = 'mzML/' + database_results['MzIDFileName']
+
     # Create a merged dataset with left join to include all cluster results and match with database results
-    merged_data = cluster_results.merge(database_results, left_on=['#Filename', '#Scan'],
-                                        right_on=['MzIDFileName', 'ScanNumber'], how='inner')
-    return merged_data
-def falcon_merge(cluster_results,database_results):
-    merged_data = cluster_results.merge(database_results, left_on=['filename', 'scan'],
-                                        right_on=['MzIDFileName', 'ScanNumber'], how='inner')
-    merged_data.to_csv("falcon_merge.tsv", sep='\t', index=False)
-    return merged_data
-def maracluster_merge(cluster_results,reference_data,database_results):
+
+    return cluster_results
+def falcon_merge(cluster_results):
+
+    return cluster_results
+def maracluster_merge(cluster_results,reference_data):
     reference_data.drop('#ClusterIdx', axis=1, inplace=True)
-    reference_data['#Filename'] = reference_data['#Filename'].str.replace('input_spectra', 'mzML')
+    reference_data['#Filename'] = reference_data['#Filename'].str.replace('input_spectra', 'mzml')
     reference_data['#RetTime'] = reference_data['#RetTime'] / 60
-    database_results['MzIDFileName'] = 'mzML/' + database_results['MzIDFileName']
     merged_data = pd.merge(cluster_results, reference_data, left_on=['filename', 'scan'], right_on=['#Filename', '#Scan'],how='inner')
-    merged_data = merged_data.merge(database_results, left_on=['filename', 'scan'],
-                                        right_on=['MzIDFileName', 'ScanNumber'], how='inner')
     return merged_data
 
+def range_avg(cluster_purity,cluster_size):
+    purity_by_cluster_size = pd.DataFrame({'ClusterSize': cluster_size, 'ClusterPurity': cluster_purity})
+    purity_by_cluster_size['Bin'] = purity_by_cluster_size['ClusterSize'].apply(assign_size_range_bin)
+    average_purity_by_bin = purity_by_cluster_size.groupby('Bin')[
+        'ClusterPurity'].mean().reset_index()
+    average_purity_by_bin['SortKey'] = average_purity_by_bin['Bin'].apply(
+        lambda x: int(x.split(' ')[0]))
+    average_purity_by_bin= average_purity_by_bin.sort_values('SortKey')
+    return average_purity_by_bin
 
 if __name__ == "__main__":
+    tqdm.pandas()
     folder_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/PXD023047_convert/mzML'
     # mscluster_results = pd.read_csv('../data/results/nf_output/clustering/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
     # falcon_results = pd.read_csv('../data/cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
-    mscluster_results = pd.read_csv('../data/PXD021518/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
-    falcon_results = pd.read_csv('../data/PXD021518/Falcon_cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
+    mscluster_results = pd.read_csv('../data/MSV000093033/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+    falcon_results = pd.read_csv('../data/MSV000093033/Falcon_cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
     print("original falcon_results:",len(falcon_results))
     # maracluster_results= pd.read_csv('./processed_clusters.tsv', sep='\t')
-    maracluster_results= pd.read_csv('../data/PXD021518/MaRaCluster_processed.clusters_p10.tsv', sep='\t')
-    database_results = pd.read_csv('./PXD021518_filtered.tsv', sep='\t')  # Adjust file path and format accordingly
+    maracluster_results= pd.read_csv('../data/MSV000093033/MaRaCluster_processed.clusters_p10.tsv', sep='\t')
+    # database_results = pd.read_csv('./PXD021518_filtered.tsv', sep='\t')  # Adjust file path and format accordingly
     data_folder_path = os.path.dirname(os.getcwd()) + '/data'
     matching_pairs_set_filename = 'matching_pairs_set.pkl'
     if matching_pairs_set_filename not in os.listdir(data_folder_path):
@@ -290,38 +311,21 @@ if __name__ == "__main__":
         with open(data_folder_path+'/'+matching_pairs_set_filename, 'rb') as file:
             matching_pairs_set = pickle.load(file)
     mscluster_results_copy = mscluster_results.copy()
-    mscluster_results = mscluster_merge(mscluster_results,copy.copy(database_results))
-    falcon_results = falcon_merge(falcon_results,copy.copy(database_results))
-    maracluster_results = maracluster_merge(maracluster_results,mscluster_results_copy,copy.copy(database_results))
-    mscluster_purity, mscluster_size = mscluster_purity(mscluster_results, matching_pairs_set)
-    falcon_purity, falcon_size = falcon_purity(falcon_results,matching_pairs_set)
-    maracluster_purity, maracluster_size = maracluster_purity(maracluster_results,matching_pairs_set)
+    mscluster_results = mscluster_merge(mscluster_results)
+    falcon_results = falcon_merge(falcon_results)
+    maracluster_results = maracluster_merge(maracluster_results,mscluster_results_copy)
+    print("start calculating the mscluster results")
+    mscluster_purity, mscluster_size = mscluster_purity(mscluster_results)
+    print("start calculating the Falcon results")
+    falcon_purity, falcon_size = falcon_purity(falcon_results)
+    print("start calculating the Maracluster results")
+    maracluster_purity, maracluster_size = maracluster_purity(maracluster_results)
     print('falcon size:',len(falcon_results))
     print('mscluster size:',len(mscluster_results))
     print('maracluster size:',len(maracluster_results))
-    purity_by_cluster_size_mscluster = pd.DataFrame({'ClusterSize': mscluster_size, 'ClusterPurity': mscluster_purity})
-    purity_by_cluster_size_mscluster['Bin'] = purity_by_cluster_size_mscluster['ClusterSize'].apply(
-        assign_size_range_bin)
-    # Group by cluster size and calculate average purity for each group
-    average_purity_by_bin_mscluster = purity_by_cluster_size_mscluster.groupby('Bin')[
-        'ClusterPurity'].mean().reset_index()
-
-    # Since the bins are non-numeric and custom, we'll sort them by the lower bound of each range for plotting
-    average_purity_by_bin_mscluster['SortKey'] = average_purity_by_bin_mscluster['Bin'].apply(
-        lambda x: int(x.split(' ')[0]))
-    average_purity_by_bin_mscluster = average_purity_by_bin_mscluster.sort_values('SortKey')
-
-    purity_by_cluster_size_falcon = pd.DataFrame({'ClusterSize': falcon_size, 'ClusterPurity': falcon_purity})
-    purity_by_cluster_size_falcon['Bin'] = purity_by_cluster_size_falcon['ClusterSize'].apply(assign_size_range_bin)
-    average_purity_by_bin_falcon = purity_by_cluster_size_falcon.groupby('Bin')['ClusterPurity'].mean().reset_index()
-    average_purity_by_bin_falcon['SortKey'] = average_purity_by_bin_falcon['Bin'].apply(lambda x: int(x.split(' ')[0]))
-    average_purity_by_bin_falcon = average_purity_by_bin_falcon.sort_values('SortKey')
-
-    purity_by_cluster_size_maracluster = pd.DataFrame({'ClusterSize': maracluster_size, 'ClusterPurity': maracluster_purity})
-    purity_by_cluster_size_maracluster['Bin'] = purity_by_cluster_size_maracluster['ClusterSize'].apply(assign_size_range_bin)
-    average_purity_by_bin_maracluster = purity_by_cluster_size_maracluster.groupby('Bin')['ClusterPurity'].mean().reset_index()
-    average_purity_by_bin_maracluster['SortKey'] = average_purity_by_bin_maracluster['Bin'].apply(lambda x: int(x.split(' ')[0]))
-    average_purity_by_bin_maracluster =average_purity_by_bin_maracluster.sort_values('SortKey')
+    average_purity_by_bin_mscluster = range_avg(mscluster_purity,mscluster_size)
+    average_purity_by_bin_falcon = range_avg(falcon_purity,falcon_size)
+    average_purity_by_bin_maracluster = range_avg(maracluster_purity,mscluster_size)
     # Plotting
     plt.figure(figsize=(12, 6))
     plt.plot(average_purity_by_bin_mscluster['Bin'], average_purity_by_bin_mscluster['ClusterPurity'], marker='o',
@@ -338,4 +342,5 @@ if __name__ == "__main__":
     plt.legend()
     plt.tight_layout()  # Adjust layout to make room for the rotated x-axis labels
     plt.show()
+    plt.savefig('MSV000093033.png')
 

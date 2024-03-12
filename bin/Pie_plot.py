@@ -6,7 +6,7 @@ import numpy as np
 
 
 
-cluster_results = pd.read_csv('/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_results/msculster_results/clustering/clusterinfo.tsv', sep='\t')  # Adjust file path and format accordingly
+cluster_results = pd.read_csv('/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_results/msculster_results/clustering/mscluster_clusterinfo.tsv', sep='\t')  # Adjust file path and format accordingly
 
 
 database_results = pd.read_csv('./filtered.tsv', sep='\t')  # Adjust file path and format accordingly
