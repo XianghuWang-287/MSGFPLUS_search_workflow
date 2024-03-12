@@ -32,6 +32,17 @@ def falcon_purity(cluster_results,database_results):
     merged_data = cluster_results.merge(database_results, left_on=['filename', 'scan'],
                                         right_on=['MzIDFileName', 'ScanNumber'], how='inner')
     merged_data['Peptide'] = merged_data['Peptide'].str.replace('I', 'L')
+    largest_cluster_index = merged_data['cluster'].value_counts().idxmax()
+
+    # Print the cluster index of the largest cluster
+    print("Cluster Index of the Largest Cluster:", largest_cluster_index)
+    return merged_data.groupby('cluster').apply(calculate_cluster_purity), merged_data.groupby('cluster').size()
+
+def maracluster_purity(cluster_results,database_results):
+    database_results['MzIDFileName'] = 'mzML/' + database_results['MzIDFileName']
+    merged_data = cluster_results.merge(database_results, left_on=['filename', 'scan'],
+                                        right_on=['MzIDFileName', 'ScanNumber'], how='inner')
+    merged_data['Peptide'] = merged_data['Peptide'].str.replace('I', 'L')
     return merged_data.groupby('cluster').apply(calculate_cluster_purity), merged_data.groupby('cluster').size()
 
 def assign_size_range_bin(size):
@@ -46,16 +57,17 @@ def assign_size_range_bin(size):
 
 
 # Load cluster results
-mscluster_results = pd.read_csv('../data/results/nf_output/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
-falcon_results = pd.read_csv('../data/cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
-database_results = pd.read_csv('./filtered.tsv', sep='\t')  # Adjust file path and format accordingly
+mscluster_results = pd.read_csv('../data/PXD021518/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+falcon_results = pd.read_csv('../data/PXD021518/Falcon_cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
+database_results = pd.read_csv('./PXD021518_filtered.tsv', sep='\t')  # Adjust file path and format accordingly
+maracluster_results= pd.read_csv('../data/PXD021518/MaRaCluster_processed.clusters_p10.tsv', sep='\t')
 
 
 
 
 mscluster_purity,mscluster_size = mscluster_purity(mscluster_results,copy.copy(database_results))
 falcon_purity,falcon_size =falcon_purity(falcon_results,copy.copy(database_results))
-print(falcon_size.min())
+maracluster_purity,maracluster_size = maracluster_purity(maracluster_results,copy.copy(database_results))
 
 purity_by_cluster_size_mscluster = pd.DataFrame({'ClusterSize': mscluster_size, 'ClusterPurity': mscluster_purity})
 purity_by_cluster_size_mscluster['Bin'] = purity_by_cluster_size_mscluster['ClusterSize'].apply(assign_size_range_bin)
@@ -72,14 +84,27 @@ average_purity_by_bin_falcon = purity_by_cluster_size_falcon.groupby('Bin')['Clu
 average_purity_by_bin_falcon['SortKey'] = average_purity_by_bin_falcon['Bin'].apply(lambda x: int(x.split(' ')[0]))
 average_purity_by_bin_falcon = average_purity_by_bin_falcon.sort_values('SortKey')
 
+purity_by_cluster_size_maracluster = pd.DataFrame(
+    {'ClusterSize': maracluster_size, 'ClusterPurity': maracluster_purity})
+purity_by_cluster_size_maracluster['Bin'] = purity_by_cluster_size_maracluster['ClusterSize'].apply(
+    assign_size_range_bin)
+average_purity_by_bin_maracluster = purity_by_cluster_size_maracluster.groupby('Bin')[
+    'ClusterPurity'].mean().reset_index()
+average_purity_by_bin_maracluster['SortKey'] = average_purity_by_bin_maracluster['Bin'].apply(
+    lambda x: int(x.split(' ')[0]))
+average_purity_by_bin_maracluster = average_purity_by_bin_maracluster.sort_values('SortKey')
+
 # Plotting
 plt.figure(figsize=(12, 6))
 plt.plot(average_purity_by_bin_mscluster['Bin'], average_purity_by_bin_mscluster['ClusterPurity'], marker='o', linestyle='-',label='mscluster')
 plt.plot(average_purity_by_bin_falcon['Bin'],average_purity_by_bin_falcon['ClusterPurity'], marker='o', linestyle='-',label='falcon')
+plt.plot(average_purity_by_bin_maracluster['Bin'],
+         average_purity_by_bin_maracluster['ClusterPurity'],
+         marker='o', linestyle='-', label='maracluster')
 plt.xlabel('Cluster Size Range')
 plt.ylabel('Average Purity')
 plt.title('Average Cluster Purity by Size Range')
-plt.ylim([0.76,1.1])
+plt.ylim([0,1.1])
 plt.xticks(rotation=45)
 plt.grid(True, which="both", ls="--", linewidth=0.5)
 plt.legend()

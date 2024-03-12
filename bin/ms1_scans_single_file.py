@@ -129,7 +129,7 @@ def compare_scans(scan1, scan2, mass_tolerance=0.01, rt_tolerance=30):
 if __name__ == "__main__":
     folder_path = '/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_convert/mzML'
 
-    cluster_results = pd.read_csv('/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_results/msculster_results/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+    cluster_results = pd.read_csv('/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_results/msculster_results/clustering/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
     matching_pairs_all_files = []
 
     for filename in os.listdir(folder_path):

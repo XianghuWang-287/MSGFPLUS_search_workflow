@@ -214,14 +214,14 @@ def assign_size_range_bin(size):
 
 def mscluster_purity(cluster_results,matching_pairs_set):
     #handle the new version workflow filename issue
-    cluster_results['#Filename'] = cluster_results['#Filename'].str.replace('input_spectra', 'mzML')
+    cluster_results['#Filename'] = cluster_results['#Filename'].str.replace('input_spectra', 'mzml')
 
-    return cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set,'mscluster')), cluster_results.groupby('#ClusterIdx').size()
+    return cluster_results.groupby('#ClusterIdx').progress_apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set,'mscluster')), cluster_results.groupby('#ClusterIdx').size()
 
 def falcon_purity(cluster_results,matching_pairs_set):
-    return cluster_results.groupby('cluster').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set,'falcon')), cluster_results.groupby('cluster').size()
+    return cluster_results.groupby('cluster').progress_apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set,'falcon')), cluster_results.groupby('cluster').size()
 def maracluster_purity(cluster_results,matching_pairs_set):
-    return cluster_results.groupby('cluster').apply(
+    return cluster_results.groupby('cluster').progress_apply(
         lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set, 'maracluster')), cluster_results.groupby(
         'cluster').size()
 def generate_matching_pairs_set_file(folder_path,data_folder_path):
@@ -246,40 +246,35 @@ def generate_matching_pairs_set_file(folder_path,data_folder_path):
         pickle.dump(matching_pairs_set, file)
     return matching_pairs_set
 
-def mscluster_merge(cluster_results,database_results):
-    cluster_results['#Filename'] = cluster_results['#Filename'].str.replace('input_spectra', 'mzML')
+def mscluster_merge(cluster_results):
+    cluster_results['#Filename'] = cluster_results['#Filename'].str.replace('input_spectra', 'mzml')
     cluster_results['#RetTime'] = cluster_results['#RetTime']/60
-    database_results['MzIDFileName'] = 'mzML/' + database_results['MzIDFileName']
+
     # Create a merged dataset with left join to include all cluster results and match with database results
-    merged_data = cluster_results.merge(database_results, left_on=['#Filename', '#Scan'],
-                                        right_on=['MzIDFileName', 'ScanNumber'], how='inner')
-    return merged_data
-def falcon_merge(cluster_results,database_results):
-    merged_data = cluster_results.merge(database_results, left_on=['filename', 'scan'],
-                                        right_on=['MzIDFileName', 'ScanNumber'], how='inner')
-    merged_data.to_csv("falcon_merge.tsv", sep='\t', index=False)
-    return merged_data
-def maracluster_merge(cluster_results,reference_data,database_results):
+
+    return cluster_results
+def falcon_merge(cluster_results):
+
+    return cluster_results
+def maracluster_merge(cluster_results,reference_data):
     reference_data.drop('#ClusterIdx', axis=1, inplace=True)
-    reference_data['#Filename'] = reference_data['#Filename'].str.replace('input_spectra', 'mzML')
+    reference_data['#Filename'] = reference_data['#Filename'].str.replace('input_spectra', 'mzml')
     reference_data['#RetTime'] = reference_data['#RetTime'] / 60
-    database_results['MzIDFileName'] = 'mzML/' + database_results['MzIDFileName']
     merged_data = pd.merge(cluster_results, reference_data, left_on=['filename', 'scan'], right_on=['#Filename', '#Scan'],how='inner')
-    merged_data = merged_data.merge(database_results, left_on=['filename', 'scan'],
-                                        right_on=['MzIDFileName', 'ScanNumber'], how='inner')
     return merged_data
 
 
 if __name__ == "__main__":
+    tqdm.pandas()
     folder_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/PXD023047_convert/mzML'
     # mscluster_results = pd.read_csv('../data/results/nf_output/clustering/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
     # falcon_results = pd.read_csv('../data/cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
-    mscluster_results = pd.read_csv('../data/PXD021518/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
-    falcon_results = pd.read_csv('../data/PXD021518/Falcon_cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
+    mscluster_results = pd.read_csv('../data/MSV000093033/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+    falcon_results = pd.read_csv('../data/MSV000093033/Falcon_cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
     print("original falcon_results:",len(falcon_results))
     # maracluster_results= pd.read_csv('./processed_clusters.tsv', sep='\t')
-    maracluster_results= pd.read_csv('../data/PXD021518/MaRaCluster_processed.clusters_p10.tsv', sep='\t')
-    database_results = pd.read_csv('./PXD021518_filtered.tsv', sep='\t')  # Adjust file path and format accordingly
+    maracluster_results= pd.read_csv('../data/MSV000093033/MaRaCluster_processed.clusters_p10.tsv', sep='\t')
+    # database_results = pd.read_csv('./PXD021518_filtered.tsv', sep='\t')  # Adjust file path and format accordingly
     data_folder_path = os.path.dirname(os.getcwd()) + '/data'
     matching_pairs_set_filename = 'matching_pairs_set.pkl'
     if matching_pairs_set_filename not in os.listdir(data_folder_path):
@@ -290,11 +285,14 @@ if __name__ == "__main__":
         with open(data_folder_path+'/'+matching_pairs_set_filename, 'rb') as file:
             matching_pairs_set = pickle.load(file)
     mscluster_results_copy = mscluster_results.copy()
-    mscluster_results = mscluster_merge(mscluster_results,copy.copy(database_results))
-    falcon_results = falcon_merge(falcon_results,copy.copy(database_results))
-    maracluster_results = maracluster_merge(maracluster_results,mscluster_results_copy,copy.copy(database_results))
+    mscluster_results = mscluster_merge(mscluster_results)
+    falcon_results = falcon_merge(falcon_results)
+    maracluster_results = maracluster_merge(maracluster_results,mscluster_results_copy)
+    print("start calculating the mscluster results")
     mscluster_purity, mscluster_size = mscluster_purity(mscluster_results, matching_pairs_set)
+    print("start calculating the Falcon results")
     falcon_purity, falcon_size = falcon_purity(falcon_results,matching_pairs_set)
+    print("start calculating the Maracluster results")
     maracluster_purity, maracluster_size = maracluster_purity(maracluster_results,matching_pairs_set)
     print('falcon size:',len(falcon_results))
     print('mscluster size:',len(mscluster_results))
@@ -338,4 +336,5 @@ if __name__ == "__main__":
     plt.legend()
     plt.tight_layout()  # Adjust layout to make room for the rotated x-axis labels
     plt.show()
+    plt.savefig('MSV000093033.png')
 
