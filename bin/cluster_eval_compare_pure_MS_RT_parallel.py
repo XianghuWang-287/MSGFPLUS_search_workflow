@@ -208,7 +208,7 @@ def compare_scans(scan1, scan2, mass_tolerance=0.01, rt_tolerance=6000):
 
 def assign_size_range_bin(size):
     if size == 1:
-        return '1'
+        return '1 to 1'  # Change here to ensure sorting works
     else:
         upper_limit = 2
         while size > upper_limit:
@@ -223,10 +223,9 @@ def apply_parallel_with_tqdm(groups, func, method):
     with Pool(processes=28) as pool:
         result_list = []
         for result in tqdm(pool.imap(partial_func, tasks), total=len(tasks)):
-            result_df = pd.DataFrame([result])
-            result_list.append(result_df)
+            result_list.append(result)
 
-    return pd.concat(result_list, axis=0)
+    return result_list
 def mscluster_purity(cluster_results):
     #handle the new version workflow filename issue
     cluster_results['#Filename'] = cluster_results['#Filename'].str.replace('input_spectra', 'mzml')
@@ -279,16 +278,26 @@ def maracluster_merge(cluster_results,reference_data):
     reference_data['#RetTime'] = reference_data['#RetTime'] / 60
     merged_data = pd.merge(cluster_results, reference_data, left_on=['filename', 'scan'], right_on=['#Filename', '#Scan'],how='inner')
     return merged_data
+def custom_sort(bin_range):
+    if bin_range == '1 to 1':
+        return 0, 1  # This ensures "1 to 1" has the smallest possible sort key
+    else:
+        # Extract the start and end numbers from the bin label and use them as sort keys
+        start, end = map(int, bin_range.split(' to '))
+        return start, end
 
-def range_avg(cluster_purity,cluster_size):
+def range_avg(cluster_purity, cluster_size):
     purity_by_cluster_size = pd.DataFrame({'ClusterSize': cluster_size, 'ClusterPurity': cluster_purity})
     purity_by_cluster_size['Bin'] = purity_by_cluster_size['ClusterSize'].apply(assign_size_range_bin)
-    average_purity_by_bin = purity_by_cluster_size.groupby('Bin')[
-        'ClusterPurity'].mean().reset_index()
-    average_purity_by_bin['SortKey'] = average_purity_by_bin['Bin'].apply(
-        lambda x: int(x.split(' ')[0]))
-    average_purity_by_bin= average_purity_by_bin.sort_values('SortKey')
+
+    # Group by 'Bin' and calculate the mean purity for each bin
+    average_purity_by_bin = purity_by_cluster_size.groupby('Bin')['ClusterPurity'].mean().reset_index()
+
+    # Sort the resulting DataFrame by the 'Bin' range
+    average_purity_by_bin = average_purity_by_bin.sort_values('Bin', key=lambda x: x.map(custom_sort))
+
     return average_purity_by_bin
+
 
 if __name__ == "__main__":
     tqdm.pandas()
@@ -324,15 +333,20 @@ if __name__ == "__main__":
     print('mscluster size:',len(mscluster_results))
     print('maracluster size:',len(maracluster_results))
     average_purity_by_bin_mscluster = range_avg(mscluster_purity,mscluster_size)
+    print(average_purity_by_bin_mscluster)
     average_purity_by_bin_falcon = range_avg(falcon_purity,falcon_size)
-    average_purity_by_bin_maracluster = range_avg(maracluster_purity,mscluster_size)
+    print(average_purity_by_bin_falcon)
+    average_purity_by_bin_maracluster = range_avg(maracluster_purity,maracluster_size)
+    print(average_purity_by_bin_maracluster)
     # Plotting
     plt.figure(figsize=(12, 6))
-    plt.plot(average_purity_by_bin_mscluster['Bin'], average_purity_by_bin_mscluster['ClusterPurity'], marker='o',
-             linestyle='-', label='mscluster')
-    plt.plot(average_purity_by_bin_falcon['Bin'], average_purity_by_bin_falcon['ClusterPurity'], marker='o',
-             linestyle='-', label='falcon')
-    plt.plot(average_purity_by_bin_maracluster['Bin'],average_purity_by_bin_maracluster['ClusterPurity'], marker='o',linestyle='-', label='maracluster')
+    plt.plot(range(len(average_purity_by_bin_mscluster)), average_purity_by_bin_mscluster['ClusterPurity'], marker='o',linestyle='-', label='mscluster')
+    plt.plot(range(len(average_purity_by_bin_falcon)), average_purity_by_bin_falcon['ClusterPurity'], marker='o',linestyle='-', label='falcon')
+    plt.plot(range(len(average_purity_by_bin_maracluster)), average_purity_by_bin_maracluster['ClusterPurity'],marker='o', linestyle='-', label='maracluster')
+
+    # Set the x-axis tick labels manually
+    plt.xticks(range(len(average_purity_by_bin_mscluster)), average_purity_by_bin_mscluster['Bin'], rotation=45)
+
     plt.xlabel('Cluster Size Range')
     plt.ylabel('Average Purity')
     plt.title('Average Cluster Purity by Size Range MS-RT')
