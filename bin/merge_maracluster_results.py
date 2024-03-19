@@ -11,8 +11,8 @@ def process_maracluster_results(input_file, output_file):
     df.to_csv(output_file, sep='\t', index=False)
 
 # Specify the input and output file paths
-input_file = '../data/MSV000093033/MaRaCluster.clusters_p10.tsv'
-output_file = '../data/MSV000093033/MaRaCluster_processed.clusters_p10.tsv'
+input_file = '../data/Combine_results/MaRaCluster.clusters_p10.tsv'
+output_file = '../data/Combine_results/MaRaCluster_processed.clusters_p10.tsv'
 
 # Call the function with the specified file paths
 process_maracluster_results(input_file, output_file)

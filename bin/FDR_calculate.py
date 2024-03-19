@@ -19,7 +19,7 @@ def get_msgf_evalue(psm):
     except (KeyError, ValueError):
         return float('inf')
 
-input_mzid_file_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/PXD021518_results/Database_search_full'
+input_mzid_file_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/Combine_test/mzid'
 
 mzid_files = [os.path.join(input_mzid_file_path,f) for f in os.listdir(input_mzid_file_path) if f.lower().endswith('.mzid')]
 # Filter PSMs based on the desired spectrum-level FDR threshold
@@ -53,7 +53,7 @@ def extract_psm_info(psm):
 
 
 # Path to the output filtered TSV file
-output_filtered_tsv_file_path = './PXD021518_filtered.tsv'
+output_filtered_tsv_file_path = './Combine_test_filtered.tsv'
 
 # Open the TSV file and write the header
 with open(output_filtered_tsv_file_path, 'w', newline='') as tsv_file:

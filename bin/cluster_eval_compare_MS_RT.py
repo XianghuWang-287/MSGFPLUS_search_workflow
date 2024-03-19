@@ -338,4 +338,5 @@ if __name__ == "__main__":
     plt.legend()
     plt.tight_layout()  # Adjust layout to make room for the rotated x-axis labels
     plt.show()
+    plt.savefig('combine_test.png')
 
