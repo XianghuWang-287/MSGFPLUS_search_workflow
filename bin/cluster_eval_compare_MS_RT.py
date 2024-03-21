@@ -272,14 +272,25 @@ def maracluster_merge(cluster_results,reference_data,database_results):
 
 if __name__ == "__main__":
     folder_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/PXD023047_convert/mzML'
-    # mscluster_results = pd.read_csv('../data/results/nf_output/clustering/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+    # mscluster_results = pd.read_csv('../data/results/nf_output/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
     # falcon_results = pd.read_csv('../data/cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
-    mscluster_results = pd.read_csv('../data/PXD021518/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
-    falcon_results = pd.read_csv('../data/PXD021518/Falcon_cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
-    print("original falcon_results:",len(falcon_results))
     # maracluster_results= pd.read_csv('./processed_clusters.tsv', sep='\t')
-    maracluster_results= pd.read_csv('../data/PXD021518/MaRaCluster_processed.clusters_p10.tsv', sep='\t')
-    database_results = pd.read_csv('./PXD021518_filtered.tsv', sep='\t')  # Adjust file path and format accordingly
+
+    mscluster_results = pd.read_csv('../data/Combine_results/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+    falcon_results = pd.read_csv('../data/Combine_results/Falcon_cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
+    maracluster_results= pd.read_csv('../data/Combine_results/MaRaCluster_processed.clusters_p10.tsv', sep='\t')
+    print("original mscluster spectra number:", len(mscluster_results))
+    print("original falcon spectra number:", len(falcon_results))
+    print("original maracluster spectra number:", len(maracluster_results))
+    print("mscluster cluster number before merge:", len(mscluster_results.groupby('#ClusterIdx').size()))
+    print("falcon cluster number before merge:", len(falcon_results.groupby('cluster').size()))
+    print("maracluster cluster number before merge:", len(maracluster_results.groupby('cluster').size()))
+    database_results = pd.read_csv('./Combine_test_filtered.tsv', sep='\t')  # Adjust file path and format accordingly
+    database_results = database_results[database_results['DB:EValue'] < 0.002]
+    database_results['Peptide'] = database_results['Peptide'].str.replace('I', 'L')
+    print("number of different piptides: ",len(database_results.groupby('Peptide').size()))
+
+
     data_folder_path = os.path.dirname(os.getcwd()) + '/data'
     matching_pairs_set_filename = 'matching_pairs_set.pkl'
     if matching_pairs_set_filename not in os.listdir(data_folder_path):
@@ -293,6 +304,12 @@ if __name__ == "__main__":
     mscluster_results = mscluster_merge(mscluster_results,copy.copy(database_results))
     falcon_results = falcon_merge(falcon_results,copy.copy(database_results))
     maracluster_results = maracluster_merge(maracluster_results,mscluster_results_copy,copy.copy(database_results))
+    print("merged mscluster spectra number:", len(mscluster_results))
+    print("merged falcon spectra number:", len(falcon_results))
+    print("merged maracluster spectra number:", len(maracluster_results))
+    print("mscluster cluster number after merge:", len(mscluster_results.groupby('#ClusterIdx').size()))
+    print("falcon cluster number after merge:", len(falcon_results.groupby('cluster').size()))
+    print("maracluster cluster number after merge:",len(maracluster_results.groupby('cluster').size()))
     mscluster_purity, mscluster_size = mscluster_purity(mscluster_results, matching_pairs_set)
     falcon_purity, falcon_size = falcon_purity(falcon_results,matching_pairs_set)
     maracluster_purity, maracluster_size = maracluster_purity(maracluster_results,matching_pairs_set)
@@ -322,6 +339,9 @@ if __name__ == "__main__":
     average_purity_by_bin_maracluster = purity_by_cluster_size_maracluster.groupby('Bin')['ClusterPurity'].mean().reset_index()
     average_purity_by_bin_maracluster['SortKey'] = average_purity_by_bin_maracluster['Bin'].apply(lambda x: int(x.split(' ')[0]))
     average_purity_by_bin_maracluster =average_purity_by_bin_maracluster.sort_values('SortKey')
+    print(average_purity_by_bin_mscluster)
+    print(average_purity_by_bin_falcon)
+    print(average_purity_by_bin_maracluster)
     # Plotting
     plt.figure(figsize=(12, 6))
     plt.plot(average_purity_by_bin_mscluster['Bin'], average_purity_by_bin_mscluster['ClusterPurity'], marker='o',
