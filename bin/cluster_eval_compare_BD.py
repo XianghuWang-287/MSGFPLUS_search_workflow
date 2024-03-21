@@ -39,7 +39,7 @@ def falcon_purity(cluster_results,database_results):
     return merged_data.groupby('cluster').apply(calculate_cluster_purity), merged_data.groupby('cluster').size()
 
 def maracluster_purity(cluster_results,database_results):
-    database_results['MzIDFileName'] = 'mzML/' + database_results['MzIDFileName']
+    database_results['MzIDFileName'] = './mzML/' + database_results['MzIDFileName']
     merged_data = cluster_results.merge(database_results, left_on=['filename', 'scan'],
                                         right_on=['MzIDFileName', 'ScanNumber'], how='inner')
     merged_data['Peptide'] = merged_data['Peptide'].str.replace('I', 'L')
@@ -57,10 +57,10 @@ def assign_size_range_bin(size):
 
 
 # Load cluster results
-mscluster_results = pd.read_csv('../data/PXD021518/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
-falcon_results = pd.read_csv('../data/PXD021518/Falcon_cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
-database_results = pd.read_csv('./PXD021518_filtered.tsv', sep='\t')  # Adjust file path and format accordingly
-maracluster_results= pd.read_csv('../data/PXD021518/MaRaCluster_processed.clusters_p10.tsv', sep='\t')
+mscluster_results = pd.read_csv('../data/Combine_results/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+falcon_results = pd.read_csv('../data/Combine_results/Falcon_cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
+database_results = pd.read_csv('./Combine_test_filtered.tsv', sep='\t')  # Adjust file path and format accordingly
+maracluster_results= pd.read_csv('../data/Combine_results/MaRaCluster_processed.clusters_p10.tsv', sep='\t')
 
 
 
