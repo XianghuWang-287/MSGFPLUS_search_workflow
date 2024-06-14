@@ -17,7 +17,6 @@ from collections import defaultdict
 method_dic = {'mscluster':{'filename':'#Filename','scan':'#Scan','mass':'#ParentMass','rt_time':'#RetTime'},
               'falcon':{'filename':'filename','scan':'scan','mass':'precursor_mz','rt_time':'retention_time'},
               'maracluster':{'filename':'filename','scan':'scan','mass':'precursor_mz','rt_time':'retention_time'}}
-
 def get_ms1_data(mzml_file):
     ms1_data = []
 
