@@ -62,7 +62,7 @@ def create_matching_network(cluster, matching_pairs_set,method):
         spec1 = cluster.iloc[index1]
         spec2 = cluster.iloc[index2]
         if spec1[method_dic[method]['filename']] == spec2[method_dic[method]['filename']]:
-            if abs(spec1[method_dic[method]['mass']]-spec2[method_dic[method]['mass']])<=0.01 and abs(spec1[method_dic[method]['rt_time']]-spec2[method_dic[method]['rt_time']])<=10:
+            if abs(spec1[method_dic[method]['mass']]-spec2[method_dic[method]['mass']])<=0.01 and abs(spec1[method_dic[method]['rt_time']]-spec2[method_dic[method]['rt_time']])<=2:
                 node_a = f"{spec1[method_dic[method]['filename']]}_{spec1[method_dic[method]['scan']]}"
                 node_b = f"{spec2[method_dic[method]['filename']]}_{spec2[method_dic[method]['scan']]}"
                 G.add_edge(node_a,node_b)

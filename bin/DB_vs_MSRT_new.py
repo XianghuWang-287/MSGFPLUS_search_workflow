@@ -262,6 +262,8 @@ if __name__ == "__main__":
 
     merged_data['Peptide'] = merged_data['Peptide'].str.replace('I', 'L')
 
+    merged_data.to_csv("../data/Combine_results/merged_data.csv", index=False)
+
     cluster_purity_db = merged_data.groupby('cluster')['Peptide'].apply(
         lambda x: x.value_counts().max() / len(x))
 
@@ -392,6 +394,29 @@ if __name__ == "__main__":
     plt.show()
     print(len(clusters_within_tolerance))
     print(len(clusters_not_within_tolerance))
+
+    filtered_clusters = merged_purity_df[
+        (merged_purity_df['ClusterPurity_ms1'] == 1) & (merged_purity_df['ClusterPurity_db'] != 1)]
+
+    # Extract relevant data for plotting
+    cluster_indices_filtered = filtered_clusters['Cluster_indices']
+    cluster_purity_db_filtered = filtered_clusters['ClusterPurity_db']
+    cluster_purity_ms1_filtered = filtered_clusters['ClusterPurity_ms1']
+
+    # Plot the filtered clusters
+    plt.figure(figsize=(10, 6))
+    plt.scatter(cluster_purity_db_filtered, cluster_purity_ms1_filtered, marker='o', color='red',
+                label='Filtered Clusters')
+    plt.xlabel('Cluster Purity in db results')
+    plt.ylabel('Cluster Purity in ms1 results')
+    plt.title('Filtered Clusters where MS1 Purity is 1 but DB Purity is not')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    print("Cluster ID numbers where MS1 purity is 1 but DB purity is not 1:")
+    for cluster_id in filtered_clusters['Cluster_indices']:
+        print(cluster_id)
 
 
 
