@@ -171,7 +171,7 @@ def calculate_cluster_purity_avg(cluster, matching_pairs_set):
     average = total_purity / total_frequency
     return average
 
-def compare_scans(scan1, scan2, mass_tolerance=0.01, rt_tolerance=65):
+def compare_scans(scan1, scan2, mass_tolerance=0.01, rt_tolerance=600):
     mass_diff = abs(scan1[0] - scan2[0])
     rt_diff = abs(scan1[1] - scan2[1])
     return mass_diff <= mass_tolerance and rt_diff <= rt_tolerance
@@ -179,7 +179,7 @@ def compare_scans(scan1, scan2, mass_tolerance=0.01, rt_tolerance=65):
 if __name__ == "__main__":
     #constructing the ms1 results
     database_results = pd.read_csv('./filtered.tsv', sep='\t')  # Adjust file path and format accordingly
-    folder_path = '/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_convert/mzML'
+    folder_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/PXD023047_convert/mzML'
 
     #cluster_results = pd.read_csv('/home/user/LAB_share/XianghuData/MS_Cluster_datasets/PXD023047_results/msculster_results/clustering/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
 
@@ -211,17 +211,18 @@ if __name__ == "__main__":
 
     matching_pairs_set = {(item[0], item[1], item[2]) for item in matching_pairs_all_files}
 
-    cluster_purity = cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_avg(x, matching_pairs_set))
-
-    cluster_indices = cluster_results['#ClusterIdx'].unique()
-
-    purity_by_cluster_index = pd.DataFrame({'Cluster_indices': cluster_indices, 'ClusterPurity': cluster_purity})
+    # cluster_purity = cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set))
+    #
+    # cluster_indices = cluster_results['#ClusterIdx'].unique()
+    #
+    # purity_by_cluster_index = pd.DataFrame({'Cluster_indices': cluster_indices, 'ClusterPurity': cluster_purity})
 
     #constructing the db results
     database_results = pd.read_csv('./filtered.tsv', sep='\t')  # Adjust file path and format accordingly
     database_results['MzIDFileName'] = 'mzML/' + database_results['MzIDFileName']
     # Filter database results based on "DB:EValue" column
-    filtered_database_results = database_results[database_results['DB:EValue'] < 0.002]
+    #filtered_database_results = database_results[database_results['DB:EValue'] < 0.002]
+    filtered_database_results = database_results
 
     # Extract unique spectra
     unique_spectra_db = filtered_database_results[['MzIDFileName', 'ScanNumber']].drop_duplicates()
@@ -239,11 +240,20 @@ if __name__ == "__main__":
 
     db_sizes = merged_data.groupby('#ClusterIdx').size()
 
-    merged_filter_index = db_sizes[db_sizes >= 7].index
+    #merged_filter_index = db_sizes[db_sizes >= 7].index
+    merged_filter_index = db_sizes.index
 
     merged_data = merged_data[merged_data['#ClusterIdx'].isin(merged_filter_index)]
     #handle the "I" and "L" replacement case
     merged_data['Peptide'] = merged_data['Peptide'].str.replace('I', 'L')
+
+    cluster_purity = merged_data.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set))
+
+    cluster_indices = merged_data['#ClusterIdx'].unique()
+
+    purity_by_cluster_index = pd.DataFrame({'Cluster_indices': cluster_indices, 'ClusterPurity': cluster_purity})
+
+
 
     cluster_purity_db = merged_data.groupby('#ClusterIdx')['Peptide'].apply(
         lambda x: x.value_counts().max() / len(x))
@@ -259,6 +269,9 @@ if __name__ == "__main__":
     common_cluster_indices = merged_purity_df['Cluster_indices']
     cluster_purity_db = merged_purity_df['ClusterPurity_db']
     cluster_purity_ms1 = merged_purity_df['ClusterPurity_ms1']
+
+    cluster_sizes = merged_data.groupby('#ClusterIdx').size().loc[common_cluster_indices]
+    weights = cluster_sizes*2
 
     plt.figure(figsize=(10, 6))
 
@@ -287,7 +300,7 @@ if __name__ == "__main__":
     x= cluster_purity_db
     y= cluster_purity_ms1
 
-    heatmap, xedges, yedges = np.histogram2d(x, y, bins=20, range=[[0, 1], [0, 1]])
+    heatmap, xedges, yedges = np.histogram2d(x, y, bins=35, range=[[0, 1], [0, 1]], weights=weights)
 
     # Transpose the heatmap
     heatmap = heatmap.T
@@ -296,7 +309,13 @@ if __name__ == "__main__":
     fig, ax = plt.subplots()
 
     # Plot the heatmap
-    im = ax.imshow(heatmap, extent=[0, 1, 0, 1], cmap='plasma', norm=LogNorm(), origin='lower')
+    offset = 1
+    heatmap_offset = heatmap + offset
+
+    # Now use LogNorm with the offset data
+    # vmin should be the smallest value you've added as an offset, to ensure 0s are included and distinctly represented
+    im = ax.imshow(heatmap_offset, extent=[0, 1, 0, 1], cmap='plasma',
+                   norm=LogNorm(vmin=offset, vmax=heatmap_offset.max()), origin='lower')
 
     # Add a colorbar
     cbar = plt.colorbar(im)
@@ -304,7 +323,7 @@ if __name__ == "__main__":
     # Set axis labels
     ax.set_xlabel('db results')
     ax.set_ylabel('ms1 results')
-
+    plt.tight_layout()
     # Show the plot
     plt.show()
 

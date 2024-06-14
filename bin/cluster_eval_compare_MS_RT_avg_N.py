@@ -100,7 +100,7 @@ def optimized_create_matching_network(cluster, method):
     edges = [
         (spec1[0], spec2[0]) for spec1, spec2 in combinations(specs, 2)
         if spec1[0].split('_')[0] == spec2[0].split('_')[0]  # Ensure filenames are the same
-           and abs(spec1[1] - spec2[1]) <= 0.01 and abs(spec1[2] - spec2[2]) <= 12
+           and abs(spec1[1] - spec2[1]) <= 0.01 and abs(spec1[2] - spec2[2]) <= 0.49
     ]
     G.add_edges_from(edges)
 
@@ -119,7 +119,7 @@ def create_matching_network(cluster, matching_pairs_set,method):
         spec1 = cluster.iloc[index1]
         spec2 = cluster.iloc[index2]
         if spec1[method_dic[method]['filename']] == spec2[method_dic[method]['filename']]:
-            if abs(spec1[method_dic[method]['mass']]-spec2[method_dic[method]['mass']])<=0.01 and abs(spec1[method_dic[method]['rt_time']]-spec2[method_dic[method]['rt_time']])<=10:
+            if abs(spec1[method_dic[method]['mass']]-spec2[method_dic[method]['mass']])<=0.01 and abs(spec1[method_dic[method]['rt_time']]-spec2[method_dic[method]['rt_time']])<=0.5:
                 node_a = f"{spec1[method_dic[method]['filename']]}_{spec1[method_dic[method]['scan']]}"
                 node_b = f"{spec2[method_dic[method]['filename']]}_{spec2[method_dic[method]['scan']]}"
                 G.add_edge(node_a,node_b)
@@ -333,16 +333,37 @@ def maracluster_merge_new(cluster_results,database_results):
                                         right_on=['MzIDFileName', 'ScanNumber'], how='inner')
     return merged_data
 
+def calculate_weighted_average_purity(purity, cluster_size):
+    weighted_purity = (purity * cluster_size).sum() / cluster_size.sum()
+    return weighted_purity
+
+def calculate_n50(cluster_size, total_spectra):
+    sorted_sizes = np.sort(cluster_size)[::-1]  # Sort cluster sizes in descending order
+    #total_spectra = sorted_sizes.sum()
+    cumulative_sum = 0
+    n50 = None
+    for size in sorted_sizes:
+        cumulative_sum += size
+        if cumulative_sum >= total_spectra *0.1:
+            n50 = size
+            break
+    return n50
 
 if __name__ == "__main__":
     folder_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/Combine_test/mzML'
-    # mscluster_results = pd.read_csv('../data/results/nf_output/clustering/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+    mscluster_results = pd.read_csv('../data/results/nf_output/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+    falcon_results = pd.read_csv('../data/PXD023047/falcon/falcon_cluster_info_0.3.tsv',sep='\t')  # Adjust file path and format accordingly
+    maracluster_results= pd.read_csv('../data/PXD023047/maracluster/MaRaCluster_processed.clusters_p5_enriched.tsv', sep='\t')
     # falcon_results = pd.read_csv('../data/cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
-    # maracluster_results= pd.read_csv('./processed_clusters.tsv', sep='\t')
+    # maracluster_results= pd.read_csv('../data/PXD023047/maracluster/MaRaCluster_processed.clusters_p10_enriched.tsv', sep='\t')
+    mscluster_n50 = calculate_n50(mscluster_results.groupby('#ClusterIdx').size(), 109333)
+    falcon_n50 = calculate_n50(falcon_results.groupby('cluster').size(), 109333)
+    # online_falcon_n50 = calculate_n50(online_falcon_size,109333)
+    maracluster_n50 = calculate_n50(maracluster_results.groupby('cluster').size(), 109333)
 
-    mscluster_results = pd.read_csv('../data/Combine_results/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
-    falcon_results = pd.read_csv('../data/Combine_results/Falcon_cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
-    maracluster_results= pd.read_csv('../data/Combine_results/MaRaCluster_processed.clusters_p10_enriched.tsv', sep='\t')
+    # mscluster_results = pd.read_csv('../data/Combine_results/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+    # falcon_results = pd.read_csv('../data/Combine_results/Falcon_cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
+    # maracluster_results= pd.read_csv('../data/Combine_results/MaRaCluster_processed.clusters_p10_enriched.tsv', sep='\t')
     print(maracluster_results)
     print("original mscluster spectra number:", len(mscluster_results))
     print("original falcon spectra number:", len(falcon_results))
@@ -381,47 +402,108 @@ if __name__ == "__main__":
     print('falcon size:',len(falcon_results))
     print('mscluster size:',len(mscluster_results))
     print('maracluster size:',len(maracluster_results))
-    purity_by_cluster_size_mscluster = pd.DataFrame({'ClusterSize': mscluster_size, 'ClusterPurity': mscluster_purity})
-    purity_by_cluster_size_mscluster['Bin'] = purity_by_cluster_size_mscluster['ClusterSize'].apply(
-        assign_size_range_bin)
-    # Group by cluster size and calculate average purity for each group
-    average_purity_by_bin_mscluster = purity_by_cluster_size_mscluster.groupby('Bin')[
-        'ClusterPurity'].mean().reset_index()
+    mscluster_weighted_avg_purity = calculate_weighted_average_purity(mscluster_purity, mscluster_size)
+    falcon_weighted_avg_purity = calculate_weighted_average_purity(falcon_purity, falcon_size)
+    # online_falcon_weighted_avg_purity = calculate_weighted_average_purity(online_falcon_purity, online_falcon_size)
+    maracluster_weighted_avg_purity = calculate_weighted_average_purity(maracluster_purity, maracluster_size)
 
-    # Since the bins are non-numeric and custom, we'll sort them by the lower bound of each range for plotting
-    average_purity_by_bin_mscluster['SortKey'] = average_purity_by_bin_mscluster['Bin'].apply(
-        lambda x: int(x.split(' ')[0]))
-    average_purity_by_bin_mscluster = average_purity_by_bin_mscluster.sort_values('SortKey')
+    print("Weighted Average Purity for MSCluster:", mscluster_weighted_avg_purity)
+    print("Weighted Average Purity for Falcon:", falcon_weighted_avg_purity)
+    # print("Weighted Average Purity for Online Falcon:", online_falcon_weighted_avg_purity)
+    print("Weighted Average Purity for MaRaCluster:", maracluster_weighted_avg_purity)
 
-    purity_by_cluster_size_falcon = pd.DataFrame({'ClusterSize': falcon_size, 'ClusterPurity': falcon_purity})
-    purity_by_cluster_size_falcon['Bin'] = purity_by_cluster_size_falcon['ClusterSize'].apply(assign_size_range_bin)
-    average_purity_by_bin_falcon = purity_by_cluster_size_falcon.groupby('Bin')['ClusterPurity'].mean().reset_index()
-    average_purity_by_bin_falcon['SortKey'] = average_purity_by_bin_falcon['Bin'].apply(lambda x: int(x.split(' ')[0]))
-    average_purity_by_bin_falcon = average_purity_by_bin_falcon.sort_values('SortKey')
 
-    purity_by_cluster_size_maracluster = pd.DataFrame({'ClusterSize': maracluster_size, 'ClusterPurity': maracluster_purity})
-    purity_by_cluster_size_maracluster['Bin'] = purity_by_cluster_size_maracluster['ClusterSize'].apply(assign_size_range_bin)
-    average_purity_by_bin_maracluster = purity_by_cluster_size_maracluster.groupby('Bin')['ClusterPurity'].mean().reset_index()
-    average_purity_by_bin_maracluster['SortKey'] = average_purity_by_bin_maracluster['Bin'].apply(lambda x: int(x.split(' ')[0]))
-    average_purity_by_bin_maracluster =average_purity_by_bin_maracluster.sort_values('SortKey')
-    print(average_purity_by_bin_mscluster)
-    print(average_purity_by_bin_falcon)
-    print(average_purity_by_bin_maracluster)
-    # Plotting
-    plt.figure(figsize=(12, 6))
-    plt.plot(average_purity_by_bin_mscluster['Bin'], average_purity_by_bin_mscluster['ClusterPurity'], marker='o',
-             linestyle='-', label='mscluster')
-    plt.plot(average_purity_by_bin_falcon['Bin'], average_purity_by_bin_falcon['ClusterPurity'], marker='o',
-             linestyle='-', label='falcon')
-    plt.plot(average_purity_by_bin_maracluster['Bin'],average_purity_by_bin_maracluster['ClusterPurity'], marker='o',linestyle='-', label='maracluster')
-    plt.xlabel('Cluster Size Range')
-    plt.ylabel('Average Purity')
-    plt.title('Average Cluster Purity by Size Range MS-RT')
-    plt.xticks(rotation=45)
-    plt.ylim([0,1.1])
-    plt.grid(True, which="both", ls="--", linewidth=0.5)
-    plt.legend()
-    plt.tight_layout()  # Adjust layout to make room for the rotated x-axis labels
+    print("N50 value for MSCluster:", mscluster_n50)
+    print("N50 value for Falcon:", falcon_n50)
+    # print("N50 value for Online Falcon:", online_falcon_n50)
+    print("N50 value for MaRaCluster:", maracluster_n50)
+
+    # methods = ['MSCluster', 'Falcon', 'Online Falcon', 'MaRaCluster']
+    # n50_values = [mscluster_n50, falcon_n50, online_falcon_n50, maracluster_n50]
+    # weighted_avg_purities = [mscluster_weighted_avg_purity, falcon_weighted_avg_purity, online_falcon_weighted_avg_purity, maracluster_weighted_avg_purity]
+    methods = ['MSCluster', 'Falcon', 'MaRaCluster']
+    n50_values = [mscluster_n50, falcon_n50, maracluster_n50]
+    weighted_avg_purities = [mscluster_weighted_avg_purity, falcon_weighted_avg_purity, maracluster_weighted_avg_purity]
+
+    # falcon_x= [4,17,18,18,18]
+    falcon_x = [8, 24, 25, 26, 26]
+    falcon_y = [0.9896683397928712,0.9748935149079129,0.973328106397189,0.972145244693312,0.9704464146834656]
+
+    # maracluster_x = [17,17,16,14,11]
+    maracluster_x = [25,23, 21, 18, 16, 14]
+    maracluster_y = [0.972550831792976,0.9771322946923686,0.9806311064166887,0.9839054660681278,0.9875231053604436,0.9911407446527595]
+
+    falcon_x_DB = [8, 24, 25, 26, 26]
+    falcon_y_DB = [0.995044158, 0.98821705, 0.986540639, 0.984972717, 0.983399087]
+
+    # maracluster_x = [17,17,16,14,11]
+    maracluster_x_DB = [25,23, 21, 18, 16, 14]
+    maracluster_y_DB = [0.9845260100343279, 0.98844732, 0.990071297, 0.991444415, 0.992632691, 0.993992606]
+
+    mscluster_x_DB = [40]
+    mscluster_y_DB = [0.9362784845519363]
+
+
+    # Plot
+    # plt.figure(figsize=(10, 6))
+    # valid_points = [(n50, purity) for purity, n50 in zip(weighted_avg_purities, n50_values) if
+    #                 purity is not None and n50 is not None]
+    # valid_methods = [method for method, purity, n50 in zip(methods, weighted_avg_purities, n50_values) if
+    #                  purity is not None and n50 is not None]
+    # valid_n50, valid_purities = zip(*valid_points)
+    # plt.scatter(valid_n50, valid_purities, color='blue', label='Methods_Default_MSRT')
+    # plt.scatter(falcon_x, falcon_y, color='red', label='Falcon_MSRT')
+    # plt.scatter(maracluster_x, maracluster_y, color='green', label='MaraCluster_MSRT')
+    # plt.scatter(falcon_x_DB, falcon_y_DB, label='Falcon_DB')
+    # plt.scatter(maracluster_x_DB, maracluster_y_DB, label='MaraCluster_DB')
+    # plt.scatter(mscluster_x_DB, mscluster_y_DB, label='MSCluster_DB')
+    # plt.xlabel('N50 Value',fontsize=12)
+    # plt.ylabel('Weighted Average Purity',fontsize=12)
+    # #plt.title('N50 vs. Weighted Average Purity for Each Method')
+    # plt.ylim([0.85,1.01])
+    # for i, method in enumerate(valid_methods):
+    #     plt.annotate(method, (valid_n50[i], valid_purities[i]), textcoords="offset points", xytext=(0, 10), ha='center',fontsize=12)
+    # plt.legend(loc='lower left',fontsize=12)
+    # plt.grid(True)
+    # plt.tight_layout()
+    # plt.show()
+    plt.figure(figsize=(10, 6))
+
+    # Create valid points
+    valid_points = [(purity, n50) for purity, n50 in zip(weighted_avg_purities, n50_values) if
+                    purity is not None and n50 is not None]
+    valid_methods = [method for method, purity, n50 in zip(methods, weighted_avg_purities, n50_values) if
+                     purity is not None and n50 is not None]
+
+    # Unpack valid points into two separate lists
+    valid_purities, valid_n50 = zip(*valid_points)
+
+    # Plot scatter points
+    #plt.scatter(valid_purities, valid_n50, color='blue', label='Methods_Default_MSRT')
+    plt.plot(falcon_y, falcon_x, 'o-', color='red', label='Falcon_MSRT')
+    plt.plot(maracluster_y, maracluster_x,'o-', color='green', label='MaraCluster_MSRT')
+    plt.plot(falcon_y_DB, falcon_x_DB,'o-', label='Falcon_DB')
+    plt.plot(maracluster_y_DB, maracluster_x_DB,'o-', label='MaraCluster_DB')
+    plt.scatter(mscluster_y_DB, mscluster_x_DB, label='MSCluster_DB')
+    plt.scatter(0.9283237802320704,40, label='MSCluster_MSRT')
+
+
+    # Adjust axis labels
+    plt.xlabel('Weighted Average Purity', fontsize=12)
+    plt.ylabel('N50 Value', fontsize=12)
+
+    # Reverse the x-axis
+    plt.gca().invert_xaxis()
+
+
+    # Annotate points with method names
+    # for i, method in enumerate(valid_methods):
+    #     plt.annotate(method, (valid_purities[i], valid_n50[i]), textcoords="offset points", xytext=(0, 10), ha='center',
+    #                  fontsize=12)
+
+    # Add legend, grid, and layout adjustments
+    plt.legend(loc='lower right', fontsize=12)
+    plt.title("Clustering Benchmark Results or Proteomics Dataset")
+    plt.grid(True)
+    plt.tight_layout()
     plt.show()
-    plt.savefig('combine_test.png')
-

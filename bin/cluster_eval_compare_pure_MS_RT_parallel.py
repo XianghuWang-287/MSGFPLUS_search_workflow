@@ -50,7 +50,32 @@ def get_ms1_data(mzml_file):
 def are_matching_spectra(filename, scan1, scan2,matching_pairs_set):
     return (filename, scan1, scan2) in matching_pairs_set
 
+def optimized_create_matching_network(cluster, method):
+    G = nx.Graph()
 
+    # Precompute the node names and add them to the graph
+    node_attrs = {
+        f"{row[method_dic[method]['filename']]}_{row[method_dic[method]['scan']]}": {"filename": row[method_dic[method]['filename']]}
+        for _, row in cluster.iterrows()
+    }
+    G.add_nodes_from(node_attrs.items())
+
+    # Precompute mass and rt_time for efficient access
+    specs = cluster.apply(lambda row: (
+        f"{row[method_dic[method]['filename']]}_{row[method_dic[method]['scan']]}",
+        row[method_dic[method]['mass']],
+        row[method_dic[method]['rt_time']]
+    ), axis=1).tolist()
+
+    # Create edges based on conditions
+    edges = [
+        (spec1[0], spec2[0]) for spec1, spec2 in combinations(specs, 2)
+        if spec1[0].split('_')[0] == spec2[0].split('_')[0]  # Ensure filenames are the same
+           and abs(spec1[1] - spec2[1]) <= 0.01 and abs(spec1[2] - spec2[2]) <= 0.1
+    ]
+    G.add_edges_from(edges)
+
+    return G
 def create_matching_network(cluster, method):
     G = nx.Graph()
 
@@ -64,7 +89,7 @@ def create_matching_network(cluster, method):
         spec1 = cluster.iloc[index1]
         spec2 = cluster.iloc[index2]
         if spec1[method_dic[method]['filename']] == spec2[method_dic[method]['filename']]:
-            if abs(spec1[method_dic[method]['mass']]-spec2[method_dic[method]['mass']])<=0.01 and abs(spec1[method_dic[method]['rt_time']]-spec2[method_dic[method]['rt_time']])<=10:
+            if abs(spec1[method_dic[method]['mass']]-spec2[method_dic[method]['mass']])<=0.01 and abs(spec1[method_dic[method]['rt_time']]-spec2[method_dic[method]['rt_time']])<=0.1:
                 node_a = f"{spec1[method_dic[method]['filename']]}_{spec1[method_dic[method]['scan']]}"
                 node_b = f"{spec2[method_dic[method]['filename']]}_{spec2[method_dic[method]['scan']]}"
                 G.add_edge(node_a,node_b)
@@ -148,7 +173,7 @@ def calculate_cluster_purity_weighted_avg(task,method):
     if len(cluster) == 1:
         return 1
     # Create a matching network considering only matching pairs with the same filename and scan number
-    G = create_matching_network(cluster, method)
+    G = optimized_create_matching_network(cluster, method)
 
     max_component_sizes = calculate_max_component_per_file(G)
 
@@ -264,7 +289,7 @@ def generate_matching_pairs_set_file(folder_path,data_folder_path):
 
 def mscluster_merge(cluster_results):
     cluster_results['#Filename'] = cluster_results['#Filename'].str.replace('input_spectra', 'mzml')
-    cluster_results['#RetTime'] = cluster_results['#RetTime']/60
+    cluster_results['#RetTime'] = cluster_results['#RetTime']
 
     # Create a merged dataset with left join to include all cluster results and match with database results
 
@@ -275,7 +300,8 @@ def falcon_merge(cluster_results):
 def maracluster_merge(cluster_results,reference_data):
     reference_data.drop('#ClusterIdx', axis=1, inplace=True)
     reference_data['#Filename'] = reference_data['#Filename'].str.replace('input_spectra', 'mzml')
-    reference_data['#RetTime'] = reference_data['#RetTime'] / 60
+    reference_data['#RetTime'] = reference_data['#RetTime']
+    cluster_results['filename'] = cluster_results['filename'].str.replace('data','mzml')
     merged_data = pd.merge(cluster_results, reference_data, left_on=['filename', 'scan'], right_on=['#Filename', '#Scan'],how='inner')
     return merged_data
 def custom_sort(bin_range):
@@ -293,10 +319,16 @@ def range_avg(cluster_purity, cluster_size):
     # Group by 'Bin' and calculate the mean purity for each bin
     average_purity_by_bin = purity_by_cluster_size.groupby('Bin')['ClusterPurity'].mean().reset_index()
 
-    # Sort the resulting DataFrame by the 'Bin' range
-    average_purity_by_bin = average_purity_by_bin.sort_values('Bin', key=lambda x: x.map(custom_sort))
+    count_clusters_by_bin = purity_by_cluster_size.groupby('Bin')['ClusterSize'].count().reset_index()
+    count_clusters_by_bin.rename(columns={'ClusterSize': 'ClusterCount'}, inplace=True)
 
-    return average_purity_by_bin
+    # Merge the two dataframes on 'Bin'
+    merged_df = pd.merge(average_purity_by_bin, count_clusters_by_bin, on='Bin')
+
+    # Sort by 'Bin'
+    merged_df = merged_df.sort_values('Bin', key=lambda x: x.map(custom_sort))
+
+    return merged_df
 
 
 if __name__ == "__main__":
@@ -304,11 +336,11 @@ if __name__ == "__main__":
     folder_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/PXD023047_convert/mzML'
     # mscluster_results = pd.read_csv('../data/results/nf_output/clustering/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
     # falcon_results = pd.read_csv('../data/cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
-    mscluster_results = pd.read_csv('../data/MSV000093033/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
-    falcon_results = pd.read_csv('../data/MSV000093033/Falcon_cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
-    print("original falcon_results:",len(falcon_results))
+    mscluster_results = pd.read_csv('../data/MSV000081981/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+    falcon_results = pd.read_csv('../data/MSV000081981/Falcon_cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
+    #print("original falcon_results:",len(falcon_results))
     # maracluster_results= pd.read_csv('./processed_clusters.tsv', sep='\t')
-    maracluster_results= pd.read_csv('../data/MSV000093033/MaRaCluster_processed.clusters_p10.tsv', sep='\t')
+    maracluster_results= pd.read_csv('../data/MSV000081981/MaRaCluster_processed.clusters_p10.tsv', sep='\t')
     # database_results = pd.read_csv('./PXD021518_filtered.tsv', sep='\t')  # Adjust file path and format accordingly
     data_folder_path = os.path.dirname(os.getcwd()) + '/data'
     matching_pairs_set_filename = 'matching_pairs_set.pkl'
@@ -322,6 +354,21 @@ if __name__ == "__main__":
     mscluster_results_copy = mscluster_results.copy()
     mscluster_results = mscluster_merge(mscluster_results)
     falcon_results = falcon_merge(falcon_results)
+    print("mscluster cluster number:", len(mscluster_results.groupby('#ClusterIdx').size()))
+    cluster_sizes = mscluster_results.groupby('#ClusterIdx').size()
+
+    # Filter clusters larger than 4096
+    clusters_larger_than_4096 = cluster_sizes[cluster_sizes > 4097]
+
+    print(f"Number of mscluster clusters larger than 4097: {len(clusters_larger_than_4096)}")
+    print("falcon cluster number:", len(falcon_results.groupby('cluster').size()))
+    print("maracluster cluster number:", len(maracluster_results.groupby('cluster').size()))
+    cluster_sizes = maracluster_results.groupby('cluster').size()
+
+    # Filter clusters larger than 4096
+    clusters_larger_than_4096 = cluster_sizes[cluster_sizes > 4097]
+
+    print(f"Number of mscluster clusters larger than 4097: {len(clusters_larger_than_4096)}")
     maracluster_results = maracluster_merge(maracluster_results,mscluster_results_copy)
     print("start calculating the mscluster results")
     mscluster_purity, mscluster_size = mscluster_purity(mscluster_results)
@@ -339,7 +386,7 @@ if __name__ == "__main__":
     average_purity_by_bin_maracluster = range_avg(maracluster_purity,maracluster_size)
     print(average_purity_by_bin_maracluster)
     # Plotting
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(10,8))
     plt.plot(range(len(average_purity_by_bin_mscluster)), average_purity_by_bin_mscluster['ClusterPurity'], marker='o',linestyle='-', label='mscluster')
     plt.plot(range(len(average_purity_by_bin_falcon)), average_purity_by_bin_falcon['ClusterPurity'], marker='o',linestyle='-', label='falcon')
     plt.plot(range(len(average_purity_by_bin_maracluster)), average_purity_by_bin_maracluster['ClusterPurity'],marker='o', linestyle='-', label='maracluster')
@@ -356,5 +403,40 @@ if __name__ == "__main__":
     plt.legend()
     plt.tight_layout()  # Adjust layout to make room for the rotated x-axis labels
     plt.show()
-    plt.savefig('MSV000093033.png')
+    # plt.savefig('Combine_meta.png')
+    # fig, ax1 = plt.subplots(figsize=(12, 6))
+    #
+    # colors = ['b', 'g', 'r']  # Colors for each method
+    # methods = ['MScluster', 'Falcon', 'Maracluster']
+    # data_frames = [
+    #     average_purity_by_bin_mscluster,
+    #     average_purity_by_bin_falcon,
+    #     average_purity_by_bin_maracluster
+    # ]
+    #
+    # # Plot average purity for each method
+    # for df, color, method in zip(data_frames, colors, methods):
+    #     ax1.plot(df['Bin'], df['ClusterPurity'], marker='o', linestyle='-', color=color, label=f'{method} Purity')
+    #
+    # ax1.set_xlabel('Cluster Size Range')
+    # ax1.set_ylabel('Average Purity', color='black')
+    # ax1.tick_params(axis='y', labelcolor='black')
+    # ax1.set_xticklabels(df['Bin'], rotation=45)
+    # ax1.legend(loc='upper left')
+    #
+    # # Create a secondary y-axis for cluster counts
+    # ax2 = ax1.twinx()
+    #
+    # # Plot cluster count for each method with semi-transparent bars
+    # for df, color, method in zip(data_frames, colors, methods):
+    #     ax2.bar(df['Bin'], df['ClusterCount'], alpha=0.3, color=color, label=f'{method} Count')
+    #
+    # ax2.set_ylabel('Cluster Count', color='black')
+    # ax2.tick_params(axis='y', labelcolor='black')
+    # ax2.legend(loc='upper right')
+    #
+    # plt.title('Average Cluster Purity and Count by Size Range MS-RT')
+    # fig.tight_layout()  # Adjust layout to make room for the legend and axis labels
+    #
+    # plt.show()
 
