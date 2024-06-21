@@ -350,7 +350,7 @@ def calculate_n50(cluster_size, total_spectra):
 
 if __name__ == "__main__":
     folder_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/Combine_test/mzML'
-    mscluster_results = pd.read_csv('../data/results/nf_output/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+    mscluster_results = pd.read_csv('/home/user/LabData/XianghuData/Classical_Networking_Workflow/PXD023047_0.05/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
     falcon_results = pd.read_csv('../data/PXD023047/falcon/falcon_cluster_info_0.3.tsv',sep='\t')  # Adjust file path and format accordingly
     maracluster_results= pd.read_csv('../data/PXD023047/maracluster/MaRaCluster_processed.clusters_p5_enriched.tsv', sep='\t')
     # falcon_results = pd.read_csv('../data/cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
@@ -439,8 +439,11 @@ if __name__ == "__main__":
     maracluster_x_DB = [25,23, 21, 18, 16, 14]
     maracluster_y_DB = [0.9845260100343279, 0.98844732, 0.990071297, 0.991444415, 0.992632691, 0.993992606]
 
-    mscluster_x_DB = [40]
-    mscluster_y_DB = [0.9362784845519363]
+    mscluster_x_DB = [17,21,25,29,30,37,40]
+    mscluster_y_DB = [0.9908740620563781,0.9879548643243082,0.9824862146795806,0.9740523752382297,0.9682559792784042,0.9473964314725077,0.9362784845519363]
+
+    mscluster_x_MSRT=[17,21,25,29,30,37,40]
+    mscluster_y_MSRT=[0.9776076522679645,0.9692229618794591,0.9601011399674295,0.9533140396696548,0.9497304221743599,0.9363323156214112,0.9283237802320704]
 
 
     # Plot
@@ -481,14 +484,14 @@ if __name__ == "__main__":
     #plt.scatter(valid_purities, valid_n50, color='blue', label='Methods_Default_MSRT')
     plt.plot(falcon_y, falcon_x, 'o-', color='red', label='Falcon_MSRT')
     plt.plot(maracluster_y, maracluster_x,'o-', color='green', label='MaraCluster_MSRT')
-    plt.plot(falcon_y_DB, falcon_x_DB,'o-', label='Falcon_DB')
-    plt.plot(maracluster_y_DB, maracluster_x_DB,'o-', label='MaraCluster_DB')
-    plt.scatter(mscluster_y_DB, mscluster_x_DB, label='MSCluster_DB')
-    plt.scatter(0.9283237802320704,40, label='MSCluster_MSRT')
+    plt.plot(falcon_y_DB, falcon_x_DB,'^-',color='red', label='Falcon_DB')
+    plt.plot(maracluster_y_DB, maracluster_x_DB,'^-',color='green', label='MaraCluster_DB')
+    plt.plot(mscluster_y_DB, mscluster_x_DB,'^-',color='orange', label='MSCluster_DB')
+    plt.plot(mscluster_y_MSRT,mscluster_x_MSRT,'o-',color='orange', label='MSCluster_MSRT')
 
 
     # Adjust axis labels
-    plt.xlabel('Weighted Average Purity', fontsize=12)
+    plt.xlabel('Average Purity', fontsize=12)
     plt.ylabel('N50 Value', fontsize=12)
 
     # Reverse the x-axis

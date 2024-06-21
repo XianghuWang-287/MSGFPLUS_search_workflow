@@ -89,7 +89,7 @@ def calculate_n50(cluster_size, total_spectra):
 # database_results = pd.read_csv('./Combine_test_filtered.tsv', sep='\t')  # Adjust file path and format accordingly
 # maracluster_results= pd.read_csv('../data/Combine_results/MaRaCluster_processed.clusters_p10.tsv', sep='\t')
 
-mscluster_results = pd.read_csv('../data/results/nf_output/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+mscluster_results = pd.read_csv('/home/user/LabData/XianghuData/Classical_Networking_Workflow/PXD023047_0.05/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
 falcon_results = pd.read_csv('../data/cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
 online_falcon_results = pd.read_csv('../data/online_cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
 maracluster_results= pd.read_csv('./processed_clusters.tsv', sep='\t')
@@ -152,10 +152,10 @@ valid_points = [(n50, purity) for purity, n50 in zip(weighted_avg_purities, n50_
 valid_methods = [method for method, purity, n50 in zip(methods, weighted_avg_purities, n50_values) if purity is not None and n50 is not None]
 valid_n50, valid_purities = zip(*valid_points)
 plt.scatter(valid_n50, valid_purities, color='blue', label='Methods')
-plt.scatter(falcon_x,falcon_y, color='red', label='Falcon')
-plt.scatter(maracluster_x,maracluster_y, color='green', label='MaraCluster')
-plt.scatter(online_falcon_n50,online_falcon_weighted_avg_purity,label='Online Falcon')
-plt.ylim([0.93,1.005])
+# plt.scatter(falcon_x,falcon_y, color='red', label='Falcon')
+# plt.scatter(maracluster_x,maracluster_y, color='green', label='MaraCluster')
+# plt.scatter(online_falcon_n50,online_falcon_weighted_avg_purity,label='Online Falcon')
+plt.ylim([0.85,1.005])
 plt.xlabel('N50 Value')
 plt.ylabel('Weighted Average Purity')
 for i, method in enumerate(valid_methods):

@@ -84,10 +84,10 @@ def calculate_n50(cluster_size, total_spectra):
 
 
 # Load cluster results
-mscluster_results = pd.read_csv('../data/Combine_results/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
-falcon_results = pd.read_csv('../data/Combine_results/Falcon_cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
+mscluster_results = pd.read_csv('/home/user/LabData/XianghuData/Classical_Networking_Workflow/Combine_test_0.005/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+falcon_results = pd.read_csv('/home/user/research/Falcon_Cluster_workflow/combine_0.3/output_summary/cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
+maracluster_results= pd.read_csv('../data/Combine_results/maracluster/MaRaCluster_processed.clusters_p5_enriched.tsv', sep='\t')
 database_results = pd.read_csv('./Combine_test_filtered.tsv', sep='\t')  # Adjust file path and format accordingly
-maracluster_results= pd.read_csv('../data/Combine_results/MaRaCluster_processed.clusters_p10.tsv', sep='\t')
 
 # mscluster_results = pd.read_csv('../data/results/nf_output/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
 # falcon_results = pd.read_csv('../data/cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
