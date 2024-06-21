@@ -100,7 +100,7 @@ def optimized_create_matching_network(cluster, method):
     edges = [
         (spec1[0], spec2[0]) for spec1, spec2 in combinations(specs, 2)
         if spec1[0].split('_')[0] == spec2[0].split('_')[0]  # Ensure filenames are the same
-           and abs(spec1[1] - spec2[1]) <= 0.01 and abs(spec1[2] - spec2[2]) <= 1
+           and abs(spec1[1] - spec2[1]) <= 0.01 and abs(spec1[2] - spec2[2]) <= 0.5
     ]
     G.add_edges_from(edges)
 
@@ -273,7 +273,7 @@ def mscluster_purity(cluster_results,matching_pairs_set):
     #handle the new version workflow filename issue
     cluster_results['#Filename'] = cluster_results['#Filename'].str.replace('input_spectra', 'mzML')
 
-    return cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_avg(x, matching_pairs_set,'mscluster')), cluster_results.groupby('#ClusterIdx').size()
+    return cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set,'mscluster')), cluster_results.groupby('#ClusterIdx').size()
 
 def falcon_purity(cluster_results,matching_pairs_set):
     return cluster_results.groupby('cluster').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set,'falcon')), cluster_results.groupby('cluster').size()
@@ -351,9 +351,14 @@ def calculate_n50(cluster_size, total_spectra):
 
 if __name__ == "__main__":
     folder_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/Combine_test/mzML'
-    mscluster_results = pd.read_csv('../data/Combine_results/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
-    falcon_results = pd.read_csv('../data/Combine_results/Falcon_cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
-    maracluster_results= pd.read_csv('../data/Combine_results/MaRaCluster_processed.clusters_p10_enriched.tsv', sep='\t')
+    mscluster_results = pd.read_csv(
+        '/home/user/LabData/XianghuData/Classical_Networking_Workflow/Combine_test_0.01/clustering/clusterinfo.tsv',
+        sep='\t')  # Adjust file path and format accordingly
+    falcon_results = pd.read_csv(
+        '/home/user/research/Falcon_Cluster_workflow/combine_0.3/output_summary/cluster_info.tsv',
+        sep='\t')  # Adjust file path and format accordingly
+    maracluster_results = pd.read_csv(
+        '../data/Combine_results/maracluster/MaRaCluster_processed.clusters_p30_enriched.tsv', sep='\t')
     # mscluster_results = pd.read_csv('../data/results/nf_output/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
     # falcon_results = pd.read_csv('../data/PXD023047/falcon/falcon_cluster_info_0.3.tsv',sep='\t')  # Adjust file path and format accordingly
     # maracluster_results= pd.read_csv('../data/PXD023047/maracluster/MaRaCluster_processed.clusters_p5_enriched.tsv', sep='\t')
