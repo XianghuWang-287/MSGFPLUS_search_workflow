@@ -17,7 +17,6 @@ from collections import defaultdict
 method_dic = {'mscluster':{'filename':'#Filename','scan':'#Scan','mass':'#ParentMass','rt_time':'#RetTime'},
               'falcon':{'filename':'filename','scan':'scan','mass':'precursor_mz','rt_time':'retention_time'},
               'maracluster':{'filename':'filename','scan':'scan','mass':'precursor_mz','rt_time':'retention_time'}}
-
 def get_ms1_data(mzml_file):
     ms1_data = []
 
@@ -100,7 +99,7 @@ def optimized_create_matching_network(cluster, method):
     edges = [
         (spec1[0], spec2[0]) for spec1, spec2 in combinations(specs, 2)
         if spec1[0].split('_')[0] == spec2[0].split('_')[0]  # Ensure filenames are the same
-           and abs(spec1[1] - spec2[1]) <= 0.01 and abs(spec1[2] - spec2[2]) <= 1
+           and abs(spec1[1] - spec2[1]) <= 0.01 and abs(spec1[2] - spec2[2]) <= 0.49
     ]
     G.add_edges_from(edges)
 
@@ -273,7 +272,7 @@ def mscluster_purity(cluster_results,matching_pairs_set):
     #handle the new version workflow filename issue
     cluster_results['#Filename'] = cluster_results['#Filename'].str.replace('input_spectra', 'mzML')
 
-    return cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_avg(x, matching_pairs_set,'mscluster')), cluster_results.groupby('#ClusterIdx').size()
+    return cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set,'mscluster')), cluster_results.groupby('#ClusterIdx').size()
 
 def falcon_purity(cluster_results,matching_pairs_set):
     return cluster_results.groupby('cluster').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set,'falcon')), cluster_results.groupby('cluster').size()
@@ -351,18 +350,15 @@ def calculate_n50(cluster_size, total_spectra):
 
 if __name__ == "__main__":
     folder_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/Combine_test/mzML'
-    mscluster_results = pd.read_csv('../data/Combine_results/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
-    falcon_results = pd.read_csv('../data/Combine_results/Falcon_cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
-    maracluster_results= pd.read_csv('../data/Combine_results/MaRaCluster_processed.clusters_p10_enriched.tsv', sep='\t')
-    # mscluster_results = pd.read_csv('../data/results/nf_output/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
-    # falcon_results = pd.read_csv('../data/PXD023047/falcon/falcon_cluster_info_0.3.tsv',sep='\t')  # Adjust file path and format accordingly
-    # maracluster_results= pd.read_csv('../data/PXD023047/maracluster/MaRaCluster_processed.clusters_p5_enriched.tsv', sep='\t')
+    mscluster_results = pd.read_csv('/home/user/LabData/XianghuData/Classical_Networking_Workflow/PXD023047_0.05/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+    falcon_results = pd.read_csv('../data/PXD023047/falcon/falcon_cluster_info_0.3.tsv',sep='\t')  # Adjust file path and format accordingly
+    maracluster_results= pd.read_csv('../data/PXD023047/maracluster/MaRaCluster_processed.clusters_p5_enriched.tsv', sep='\t')
     # falcon_results = pd.read_csv('../data/cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
     # maracluster_results= pd.read_csv('../data/PXD023047/maracluster/MaRaCluster_processed.clusters_p10_enriched.tsv', sep='\t')
-    mscluster_n50 = calculate_n50(mscluster_results.groupby('#ClusterIdx').size(), 395743)
-    falcon_n50 = calculate_n50(falcon_results.groupby('cluster').size(), 395743)
+    mscluster_n50 = calculate_n50(mscluster_results.groupby('#ClusterIdx').size(), 109333)
+    falcon_n50 = calculate_n50(falcon_results.groupby('cluster').size(), 109333)
     # online_falcon_n50 = calculate_n50(online_falcon_size,109333)
-    maracluster_n50 = calculate_n50(maracluster_results.groupby('cluster').size(), 395743)
+    maracluster_n50 = calculate_n50(maracluster_results.groupby('cluster').size(), 109333)
 
     # mscluster_results = pd.read_csv('../data/Combine_results/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
     # falcon_results = pd.read_csv('../data/Combine_results/Falcon_cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
@@ -389,10 +385,10 @@ if __name__ == "__main__":
     else:
         with open(data_folder_path+'/'+matching_pairs_set_filename, 'rb') as file:
             matching_pairs_set = pickle.load(file)
-    # mscluster_results_copy = mscluster_results.copy()
-    # mscluster_results = mscluster_merge(mscluster_results,copy.copy(database_results))
-    # falcon_results = falcon_merge(falcon_results,copy.copy(database_results))
-    # maracluster_results = maracluster_merge_new(maracluster_results,copy.copy(database_results))
+    mscluster_results_copy = mscluster_results.copy()
+    mscluster_results = mscluster_merge(mscluster_results,copy.copy(database_results))
+    falcon_results = falcon_merge(falcon_results,copy.copy(database_results))
+    maracluster_results = maracluster_merge_new(maracluster_results,copy.copy(database_results))
     print("merged mscluster spectra number:", len(mscluster_results))
     print("merged falcon spectra number:", len(falcon_results))
     print("merged maracluster spectra number:", len(maracluster_results))
@@ -428,23 +424,26 @@ if __name__ == "__main__":
     n50_values = [mscluster_n50, falcon_n50, maracluster_n50]
     weighted_avg_purities = [mscluster_weighted_avg_purity, falcon_weighted_avg_purity, maracluster_weighted_avg_purity]
 
-    # # falcon_x= [4,17,18,18,18]
-    # falcon_x = [8, 24, 25, 26, 26]
-    # falcon_y = [0.9896683397928712,0.9748935149079129,0.973328106397189,0.972145244693312,0.9704464146834656]
-    #
-    # # maracluster_x = [17,17,16,14,11]
-    # maracluster_x = [25,23, 21, 18, 16, 14]
-    # maracluster_y = [0.972550831792976,0.9771322946923686,0.9806311064166887,0.9839054660681278,0.9875231053604436,0.9911407446527595]
-    #
-    # falcon_x_DB = [8, 24, 25, 26, 26]
-    # falcon_y_DB = [0.995044158, 0.98821705, 0.986540639, 0.984972717, 0.983399087]
-    #
-    # # maracluster_x = [17,17,16,14,11]
-    # maracluster_x_DB = [25,23, 21, 18, 16, 14]
-    # maracluster_y_DB = [0.9845260100343279, 0.98844732, 0.990071297, 0.991444415, 0.992632691, 0.993992606]
-    #
-    # mscluster_x_DB = [40]
-    # mscluster_y_DB = [0.9362784845519363]
+    # falcon_x= [4,17,18,18,18]
+    falcon_x = [8, 24, 25, 26, 26]
+    falcon_y = [0.9896683397928712,0.9748935149079129,0.973328106397189,0.972145244693312,0.9704464146834656]
+
+    # maracluster_x = [17,17,16,14,11]
+    maracluster_x = [25,23, 21, 18, 16, 14]
+    maracluster_y = [0.972550831792976,0.9771322946923686,0.9806311064166887,0.9839054660681278,0.9875231053604436,0.9911407446527595]
+
+    falcon_x_DB = [8, 24, 25, 26, 26]
+    falcon_y_DB = [0.995044158, 0.98821705, 0.986540639, 0.984972717, 0.983399087]
+
+    # maracluster_x = [17,17,16,14,11]
+    maracluster_x_DB = [25,23, 21, 18, 16, 14]
+    maracluster_y_DB = [0.9845260100343279, 0.98844732, 0.990071297, 0.991444415, 0.992632691, 0.993992606]
+
+    mscluster_x_DB = [17,21,25,29,30,37,40]
+    mscluster_y_DB = [0.9908740620563781,0.9879548643243082,0.9824862146795806,0.9740523752382297,0.9682559792784042,0.9473964314725077,0.9362784845519363]
+
+    mscluster_x_MSRT=[17,21,25,29,30,37,40]
+    mscluster_y_MSRT=[0.9776076522679645,0.9692229618794591,0.9601011399674295,0.9533140396696548,0.9497304221743599,0.9363323156214112,0.9283237802320704]
 
 
     # Plot
@@ -480,20 +479,19 @@ if __name__ == "__main__":
 
     # Unpack valid points into two separate lists
     valid_purities, valid_n50 = zip(*valid_points)
-    print(valid_methods, valid_purities, valid_n50)
 
     # Plot scatter points
     #plt.scatter(valid_purities, valid_n50, color='blue', label='Methods_Default_MSRT')
-    # plt.plot(falcon_y, falcon_x, 'o-', color='red', label='Falcon_MSRT')
-    # plt.plot(maracluster_y, maracluster_x,'o-', color='green', label='MaraCluster_MSRT')
-    # plt.plot(falcon_y_DB, falcon_x_DB,'o-', label='Falcon_DB')
-    # plt.plot(maracluster_y_DB, maracluster_x_DB,'o-', label='MaraCluster_DB')
-    # plt.scatter(mscluster_y_DB, mscluster_x_DB, label='MSCluster_DB')
-    # plt.scatter(0.9283237802320704,40, label='MSCluster_MSRT')
+    plt.plot(falcon_y, falcon_x, 'o-', color='red', label='Falcon_MSRT')
+    plt.plot(maracluster_y, maracluster_x,'o-', color='green', label='MaraCluster_MSRT')
+    plt.plot(falcon_y_DB, falcon_x_DB,'^-',color='red', label='Falcon_DB')
+    plt.plot(maracluster_y_DB, maracluster_x_DB,'^-',color='green', label='MaraCluster_DB')
+    plt.plot(mscluster_y_DB, mscluster_x_DB,'^-',color='orange', label='MSCluster_DB')
+    plt.plot(mscluster_y_MSRT,mscluster_x_MSRT,'o-',color='orange', label='MSCluster_MSRT')
 
 
     # Adjust axis labels
-    plt.xlabel('Weighted Average Purity', fontsize=12)
+    plt.xlabel('Average Purity', fontsize=12)
     plt.ylabel('N50 Value', fontsize=12)
 
     # Reverse the x-axis
@@ -501,9 +499,9 @@ if __name__ == "__main__":
 
 
     # Annotate points with method names
-    for i, method in enumerate(valid_methods):
-        plt.annotate(method, (valid_purities[i], valid_n50[i]), textcoords="offset points", xytext=(0, 10), ha='center',
-                     fontsize=12)
+    # for i, method in enumerate(valid_methods):
+    #     plt.annotate(method, (valid_purities[i], valid_n50[i]), textcoords="offset points", xytext=(0, 10), ha='center',
+    #                  fontsize=12)
 
     # Add legend, grid, and layout adjustments
     plt.legend(loc='lower right', fontsize=12)

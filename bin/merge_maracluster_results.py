@@ -43,9 +43,9 @@ def enrich_cluster_results(cluster_results,mzml_folder_path):
     return cluster_results
 
 # Specify the input and output file paths
-input_file = '/home/user/LabData/XianghuData/MS_Cluster_datasets/PXD023047_convert/maracluster_output/MaRaCluster.clusters_p10.tsv'
-output_file = '../data/PXD023047/maracluster/MaRaCluster_processed.clusters_p10_enriched.tsv'
-folder_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/PXD023047_convert/mzML'
+input_file = '/home/user/LabData/XianghuData/MS_Cluster_datasets/Combine_test/maracluster_output/MaRaCluster.clusters_p5.tsv'
+output_file = '../data/Combine_results/maracluster/MaRaCluster_processed.clusters_p5_enriched.tsv'
+folder_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/Combine_test/mzML'
 # Call the function with the specified file paths
 cluster_results = process_maracluster_results(input_file)
 cluster_results = enrich_cluster_results(cluster_results,folder_path)
