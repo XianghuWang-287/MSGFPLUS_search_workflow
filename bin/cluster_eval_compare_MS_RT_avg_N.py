@@ -273,7 +273,7 @@ def mscluster_purity(cluster_results,matching_pairs_set):
     #handle the new version workflow filename issue
     cluster_results['#Filename'] = cluster_results['#Filename'].str.replace('input_spectra', 'mzML')
 
-    return cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_avg(x, matching_pairs_set,'mscluster')), cluster_results.groupby('#ClusterIdx').size()
+    return cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set,'mscluster')), cluster_results.groupby('#ClusterIdx').size()
 
 def falcon_purity(cluster_results,matching_pairs_set):
     return cluster_results.groupby('cluster').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set,'falcon')), cluster_results.groupby('cluster').size()

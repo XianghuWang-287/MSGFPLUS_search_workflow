@@ -171,7 +171,7 @@ def calculate_cluster_purity_avg(cluster, matching_pairs_set):
     average = total_purity / total_frequency
     return average
 
-def compare_scans(scan1, scan2, mass_tolerance=0.01, rt_tolerance=600):
+def compare_scans(scan1, scan2, mass_tolerance=0.01, rt_tolerance=60):
     mass_diff = abs(scan1[0] - scan2[0])
     rt_diff = abs(scan1[1] - scan2[1])
     return mass_diff <= mass_tolerance and rt_diff <= rt_tolerance
@@ -211,11 +211,11 @@ if __name__ == "__main__":
 
     matching_pairs_set = {(item[0], item[1], item[2]) for item in matching_pairs_all_files}
 
-    # cluster_purity = cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set))
-    #
-    # cluster_indices = cluster_results['#ClusterIdx'].unique()
-    #
-    # purity_by_cluster_index = pd.DataFrame({'Cluster_indices': cluster_indices, 'ClusterPurity': cluster_purity})
+    cluster_purity = cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set))
+
+    cluster_indices = cluster_results['#ClusterIdx'].unique()
+
+    purity_by_cluster_index = pd.DataFrame({'Cluster_indices': cluster_indices, 'ClusterPurity': cluster_purity})
 
     #constructing the db results
     database_results = pd.read_csv('./filtered.tsv', sep='\t')  # Adjust file path and format accordingly
@@ -240,18 +240,18 @@ if __name__ == "__main__":
 
     db_sizes = merged_data.groupby('#ClusterIdx').size()
 
-    #merged_filter_index = db_sizes[db_sizes >= 7].index
-    merged_filter_index = db_sizes.index
+    merged_filter_index = db_sizes[db_sizes >= 7].index
+    # merged_filter_index = db_sizes.index
 
     merged_data = merged_data[merged_data['#ClusterIdx'].isin(merged_filter_index)]
     #handle the "I" and "L" replacement case
     merged_data['Peptide'] = merged_data['Peptide'].str.replace('I', 'L')
 
-    cluster_purity = merged_data.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set))
-
-    cluster_indices = merged_data['#ClusterIdx'].unique()
-
-    purity_by_cluster_index = pd.DataFrame({'Cluster_indices': cluster_indices, 'ClusterPurity': cluster_purity})
+    # cluster_purity = merged_data.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set))
+    #
+    # cluster_indices = merged_data['#ClusterIdx'].unique()
+    #
+    # purity_by_cluster_index = pd.DataFrame({'Cluster_indices': cluster_indices, 'ClusterPurity': cluster_purity})
 
 
 
@@ -300,7 +300,7 @@ if __name__ == "__main__":
     x= cluster_purity_db
     y= cluster_purity_ms1
 
-    heatmap, xedges, yedges = np.histogram2d(x, y, bins=35, range=[[0, 1], [0, 1]], weights=weights)
+    heatmap, xedges, yedges = np.histogram2d(x, y, bins=20, range=[[0, 1], [0, 1]])
 
     # Transpose the heatmap
     heatmap = heatmap.T
@@ -309,13 +309,12 @@ if __name__ == "__main__":
     fig, ax = plt.subplots()
 
     # Plot the heatmap
-    offset = 1
-    heatmap_offset = heatmap + offset
+
 
     # Now use LogNorm with the offset data
     # vmin should be the smallest value you've added as an offset, to ensure 0s are included and distinctly represented
-    im = ax.imshow(heatmap_offset, extent=[0, 1, 0, 1], cmap='plasma',
-                   norm=LogNorm(vmin=offset, vmax=heatmap_offset.max()), origin='lower')
+    im = ax.imshow(heatmap, extent=[0, 1, 0, 1], cmap='plasma_r',
+                   norm=LogNorm(vmax=heatmap.max()), origin='lower')
 
     # Add a colorbar
     cbar = plt.colorbar(im)
@@ -344,7 +343,7 @@ if __name__ == "__main__":
     num_rows = int(np.ceil(num_clusters / num_cols))
 
     # Create subplots
-    fig, axes = plt.subplots(num_rows, num_cols, figsize=(20 , 5 * num_rows))
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=(25 , 5 * num_rows))
 
     # Flatten the axes array and iterate through the first 100 clusters to plot the pie chart
     for i, cluster_idx in enumerate(clusters_not_within_tolerance[0:100]):
