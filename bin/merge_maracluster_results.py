@@ -35,7 +35,7 @@ def enrich_cluster_results(cluster_results,mzml_folder_path):
             mzml_file_path = os.path.join(mzml_folder_path, filename)
             ms1_data = extract_ms1_data(mzml_file_path)
             for index, row in cluster_results.iterrows():
-                if row['filename'] == "mzML/"+filename:
+                if os.path.basename(row['filename']) == filename:
                     scan_number = row['scan']
                     if scan_number in ms1_data:
                         cluster_results.at[index, 'precursor_mz'] = ms1_data[scan_number][0]
@@ -43,9 +43,9 @@ def enrich_cluster_results(cluster_results,mzml_folder_path):
     return cluster_results
 
 # Specify the input and output file paths
-input_file = '/home/user/LabData/XianghuData/MS_Cluster_datasets/Combine_test/maracluster_output/MaRaCluster.clusters_p5.tsv'
-output_file = '../data/Combine_results/maracluster/MaRaCluster_processed.clusters_p5_enriched.tsv'
-folder_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/Combine_test/mzML'
+input_file = '/home/user/LabData/XianghuData/metabolomics_clustering_data/MSV000093033/peak/maracluster_output_10/MaRaCluster.clusters_p10.tsv'
+output_file = '../data/MSV000093033/maracluster_new/MaRaCluster_processed.clusters_p10_enriched.tsv'
+folder_path = '/home/user/LabData/XianghuData/metabolomics_clustering_data/MSV000093033/peak/mzml'
 # Call the function with the specified file paths
 cluster_results = process_maracluster_results(input_file)
 cluster_results = enrich_cluster_results(cluster_results,folder_path)

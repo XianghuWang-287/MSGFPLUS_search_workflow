@@ -71,7 +71,7 @@ def optimized_create_matching_network(cluster, method):
     edges = [
         (spec1[0], spec2[0]) for spec1, spec2 in combinations(specs, 2)
         if spec1[0].split('_')[0] == spec2[0].split('_')[0]  # Ensure filenames are the same
-           and abs(spec1[1] - spec2[1]) <= 0.01 and abs(spec1[2] - spec2[2]) <= 0.1
+           and abs(spec1[1] - spec2[1]) <= 0.01 and abs(spec1[2] - spec2[2]) <= 0.3
     ]
     G.add_edges_from(edges)
 
@@ -341,7 +341,7 @@ def calculate_n50(cluster_size, total_spectra):
     n50 = None
     for size in sorted_sizes:
         cumulative_sum += size
-        if cumulative_sum >= total_spectra *0.05:
+        if cumulative_sum >= total_spectra *0.1:
             n50 = size
             break
     return n50
@@ -351,15 +351,15 @@ if __name__ == "__main__":
     folder_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/PXD023047_convert/mzML'
     # mscluster_results = pd.read_csv('../data/results/nf_output/clustering/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
     # falcon_results = pd.read_csv('../data/cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
-    mscluster_results = pd.read_csv('/home/user/LabData/XianghuData/Classical_Networking_Workflow/MSV000093033_0.05/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
-    falcon_results = pd.read_csv('/home/user/research/Falcon_Cluster_workflow/MSV000093033_0.3/output_summary/cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
+    mscluster_results = pd.read_csv('../data/MSV000081981/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+    falcon_results = pd.read_csv('../data/MSV000081981/Falcon_cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
     #print("original falcon_results:",len(falcon_results))
     # maracluster_results= pd.read_csv('./processed_clusters.tsv', sep='\t')
-    maracluster_results= pd.read_csv('../data/MSV000093033/maracluster/MaRaCluster_processed.clusters_p10_enriched.tsv', sep='\t')
-    mscluster_n50 = calculate_n50(mscluster_results.groupby('#ClusterIdx').size(), 2010711)
-    falcon_n50 = calculate_n50(falcon_results.groupby('cluster').size(), 2010711)
+    maracluster_results= pd.read_csv('/home/user/LabData/XianghuData/metabolomics_clustering_data/MSV000081981_results/maracluster/MaRaCluster_processed.clusters_p5_enriched.tsv', sep='\t')
+    mscluster_n50 = calculate_n50(mscluster_results.groupby('#ClusterIdx').size(), 7838866)
+    falcon_n50 = calculate_n50(falcon_results.groupby('cluster').size(), 7838866)
     # online_falcon_n50 = calculate_n50(online_falcon_size,109333)
-    maracluster_n50 = calculate_n50(maracluster_results.groupby('cluster').size(), 2010711)
+    maracluster_n50 = calculate_n50(maracluster_results.groupby('cluster').size(), 7838866)
     # database_results = pd.read_csv('./PXD021518_filtered.tsv', sep='\t')  # Adjust file path and format accordingly
     data_folder_path = os.path.dirname(os.getcwd()) + '/data'
     matching_pairs_set_filename = 'matching_pairs_set.pkl'
