@@ -405,8 +405,7 @@ if __name__ == "__main__":
 
     # Now use LogNorm with the offset data
     # vmin should be the smallest value you've added as an offset, to ensure 0s are included and distinctly represented
-    im = ax.imshow(heatmap, extent=[0, 1, 0, 1], cmap='plasma',
-                   norm=LogNorm(vmax=heatmap.max()), origin='lower')
+    im = ax.imshow(heatmap, extent=[0, 1, 0, 1], cmap='plasma', origin='lower')
 
     # Add a colorbar
     cbar = plt.colorbar(im)

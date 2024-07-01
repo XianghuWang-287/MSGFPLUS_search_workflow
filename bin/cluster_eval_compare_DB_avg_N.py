@@ -84,17 +84,16 @@ def calculate_n50(cluster_size, total_spectra):
 
 
 # Load cluster results
-mscluster_results = pd.read_csv('/home/user/LabData/XianghuData/Classical_Networking_Workflow/Combine_test_0.0001/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
-falcon_results = pd.read_csv('/home/user/LabData/XianghuData/Falcon_Cluster_Benchmark/PXD000561/output_4_summary/cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
-maracluster_results= pd.read_csv('/home/user/LabData/XianghuData/MS_Cluster_datasets/PXD000561_maracluster/PXD000561_maracluster_6_processed.tsv', sep='\t')
-database_results = pd.read_csv('./Combine_test_filtered.tsv', sep='\t')  # Adjust file path and format accordingly
+mscluster_results = pd.read_csv('/home/user/LabData/XianghuData/MsCluster_Workflow/Combine_test_0.005/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+falcon_results = pd.read_csv('/home/user/LabData/XianghuData/Falcon_Cluster_Benchmark/combine_0.3/output_summary/cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
+maracluster_results= pd.read_csv('../data/Combine_results/maracluster/MaRaCluster_processed.clusters_p5_enriched.tsv', sep='\t')
+database_results = pd.read_csv('./Combine_test_filtered.tsv')  # Adjust file path and format accordingly
 
-mscluster_n50 = calculate_n50(mscluster_results.groupby('#ClusterIdx').size(),395743)
-falcon_n50 = calculate_n50(falcon_results.groupby('cluster').size(),24992480)
+mscluster_n50 = calculate_n50(mscluster_results.groupby('#ClusterIdx').size(),286410)
+falcon_n50 = calculate_n50(falcon_results.groupby('cluster').size(),286410)
 # online_falcon_n50 = calculate_n50(online_falcon_size,109333)
-maracluster_n50 = calculate_n50(maracluster_results.groupby('cluster').size(),24992480)
-true_size = database_results.groupby('Peptide').size()
-true_weighted_n50 = calculate_n50(true_size,395743)
+maracluster_n50 = calculate_n50(maracluster_results.groupby('cluster').size(),286410)
+
 
 print("N50 value for MSCluster:", mscluster_n50)
 print("N50 value for Falcon:", falcon_n50)
@@ -126,7 +125,6 @@ mscluster_weighted_avg_purity = calculate_weighted_average_purity(mscluster_puri
 falcon_weighted_avg_purity = calculate_weighted_average_purity(falcon_purity, falcon_size)
 # online_falcon_weighted_avg_purity = calculate_weighted_average_purity(online_falcon_purity, online_falcon_size)
 maracluster_weighted_avg_purity = calculate_weighted_average_purity(maracluster_purity, maracluster_size)
-true_weighted_avg_purity = 1
 
 
 print("Weighted Average Purity for MSCluster:", mscluster_weighted_avg_purity)
@@ -144,9 +142,9 @@ print("Weighted Average Purity for MaRaCluster:", maracluster_weighted_avg_purit
 # methods = ['MSCluster', 'Falcon', 'Online Falcon', 'MaRaCluster']
 # n50_values = [mscluster_n50, falcon_n50, online_falcon_n50, maracluster_n50]
 # weighted_avg_purities = [mscluster_weighted_avg_purity, falcon_weighted_avg_purity, online_falcon_weighted_avg_purity, maracluster_weighted_avg_purity]
-methods = ['MSCluster', 'Falcon', 'MaRaCluster','True results']
-n50_values = [mscluster_n50, falcon_n50, maracluster_n50, true_weighted_n50]
-weighted_avg_purities = [mscluster_weighted_avg_purity, falcon_weighted_avg_purity,  maracluster_weighted_avg_purity,true_weighted_avg_purity]
+methods = ['MSCluster', 'Falcon', 'MaRaCluster']
+n50_values = [mscluster_n50, falcon_n50, maracluster_n50]
+weighted_avg_purities = [mscluster_weighted_avg_purity, falcon_weighted_avg_purity,  maracluster_weighted_avg_purity]
 
 # Plot
 plt.figure(figsize=(10, 6))

@@ -92,8 +92,8 @@ def calculate_n50(cluster_size, total_spectra):
 mscluster_results = pd.read_csv('/home/user/LabData/XianghuData/Classical_Networking_Workflow/PXD023047_0.05/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
 falcon_results = pd.read_csv('../data/cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
 online_falcon_results = pd.read_csv('../data/online_cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
-maracluster_results= pd.read_csv('./processed_clusters.tsv', sep='\t')
-database_results = pd.read_csv('./filtered.tsv', sep='\t')
+maracluster_results= pd.read_csv('../data/PXD023047/maracluster/MaRaCluster_processed.clusters_p10_enriched.tsv', sep='\t')
+database_results = pd.read_csv('./PXD023047_filtered.tsv', sep='\t')
 
 # falcon_x= [4,17,18,18,18]
 falcon_x = [8,24,25,26,26]
@@ -142,7 +142,7 @@ print("N50 value for MaRaCluster:", maracluster_n50)
 # methods = ['MSCluster', 'Falcon', 'Online Falcon', 'MaRaCluster']
 # n50_values = [mscluster_n50, falcon_n50, online_falcon_n50, maracluster_n50]
 # weighted_avg_purities = [mscluster_weighted_avg_purity, falcon_weighted_avg_purity, online_falcon_weighted_avg_purity, maracluster_weighted_avg_purity]
-methods = ['MSCluster', 'Falcon', 'MaRaCluster','True results']
+methods = ['MSCluster_default', 'Falcon_default', 'MaRaCluster_default','True results']
 n50_values = [mscluster_n50, falcon_n50, maracluster_n50, true_weighted_n50]
 weighted_avg_purities = [mscluster_weighted_avg_purity, falcon_weighted_avg_purity,  maracluster_weighted_avg_purity,true_weighted_avg_purity]
 
@@ -154,9 +154,9 @@ valid_n50, valid_purities = zip(*valid_points)
 plt.scatter(valid_n50, valid_purities, color='blue', label='Methods')
 # plt.scatter(falcon_x,falcon_y, color='red', label='Falcon')
 # plt.scatter(maracluster_x,maracluster_y, color='green', label='MaraCluster')
-# plt.scatter(online_falcon_n50,online_falcon_weighted_avg_purity,label='Online Falcon')
+plt.scatter(online_falcon_n50,online_falcon_weighted_avg_purity,label='Online Falcon')
 plt.ylim([0.85,1.005])
-plt.xlabel('N50 Value')
+plt.xlabel('N10 Value')
 plt.ylabel('Weighted Average Purity')
 for i, method in enumerate(valid_methods):
     plt.annotate(method, (valid_n50[i], valid_purities[i]), textcoords="offset points", xytext=(0,10), ha='center')
