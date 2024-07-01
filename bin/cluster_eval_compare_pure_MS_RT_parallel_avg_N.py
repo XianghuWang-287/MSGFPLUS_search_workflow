@@ -18,7 +18,7 @@ from functools import partial
 
 method_dic = {'mscluster':{'filename':'#Filename','scan':'#Scan','mass':'#ParentMass','rt_time':'#RetTime'},
               'falcon':{'filename':'filename','scan':'scan','mass':'precursor_mz','rt_time':'retention_time'},
-              'maracluster':{'filename':'filename','scan':'scan','mass':'#ParentMass','rt_time':'#RetTime'}}
+              'maracluster':{'filename':'filename','scan':'scan','mass':'precursor_mz','rt_time':'retention_time'}}
 
 def get_ms1_data(mzml_file):
     ms1_data = []
@@ -71,7 +71,7 @@ def optimized_create_matching_network(cluster, method):
     edges = [
         (spec1[0], spec2[0]) for spec1, spec2 in combinations(specs, 2)
         if spec1[0].split('_')[0] == spec2[0].split('_')[0]  # Ensure filenames are the same
-           and abs(spec1[1] - spec2[1]) <= 0.01 and abs(spec1[2] - spec2[2]) <= 0.1
+           and abs(spec1[1] - spec2[1]) <= 0.01 and abs(spec1[2] - spec2[2]) <= 0.3
     ]
     G.add_edges_from(edges)
 
@@ -245,7 +245,7 @@ def apply_parallel_with_tqdm(groups, func, method):
     tasks = [(name, group) for name, group in groups]  # Ensure tasks are prepared as tuples
     partial_func = partial(func, method=method)
 
-    with Pool(processes=28) as pool:
+    with Pool(processes=64) as pool:
         result_list = []
         for result in tqdm(pool.imap(partial_func, tasks), total=len(tasks)):
             result_list.append(result)
@@ -298,12 +298,12 @@ def falcon_merge(cluster_results):
 
     return cluster_results
 def maracluster_merge(cluster_results,reference_data):
-    reference_data.drop('#ClusterIdx', axis=1, inplace=True)
-    reference_data['#Filename'] = reference_data['#Filename'].str.replace('input_spectra', 'mzml')
-    reference_data['#RetTime'] = reference_data['#RetTime']
-    cluster_results['filename'] = cluster_results['filename'].str.replace('data','mzml')
-    merged_data = pd.merge(cluster_results, reference_data, left_on=['filename', 'scan'], right_on=['#Filename', '#Scan'],how='inner')
-    return merged_data
+    # reference_data.drop('#ClusterIdx', axis=1, inplace=True)
+    # reference_data['#Filename'] = reference_data['#Filename'].str.replace('input_spectra', 'mzml')
+    # reference_data['#RetTime'] = reference_data['#RetTime']
+    # cluster_results['filename'] = cluster_results['filename'].str.replace('data','mzml')
+    # merged_data = pd.merge(cluster_results, reference_data, left_on=['filename', 'scan'], right_on=['#Filename', '#Scan'],how='inner')
+    return cluster_results
 def custom_sort(bin_range):
     if bin_range == '1 to 1':
         return 0, 1  # This ensures "1 to 1" has the smallest possible sort key
@@ -355,7 +355,7 @@ if __name__ == "__main__":
     falcon_results = pd.read_csv('../data/MSV000081981/Falcon_cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
     #print("original falcon_results:",len(falcon_results))
     # maracluster_results= pd.read_csv('./processed_clusters.tsv', sep='\t')
-    maracluster_results= pd.read_csv('../data/MSV000081981/MaRaCluster_processed.clusters_p10.tsv', sep='\t')
+    maracluster_results= pd.read_csv('/home/user/LabData/XianghuData/metabolomics_clustering_data/MSV000081981_results/maracluster/MaRaCluster_processed.clusters_p5_enriched.tsv', sep='\t')
     mscluster_n50 = calculate_n50(mscluster_results.groupby('#ClusterIdx').size(), 7838866)
     falcon_n50 = calculate_n50(falcon_results.groupby('cluster').size(), 7838866)
     # online_falcon_n50 = calculate_n50(online_falcon_size,109333)
@@ -399,10 +399,15 @@ if __name__ == "__main__":
     print('mscluster size:',len(mscluster_results))
     print('maracluster size:',len(maracluster_results))
 
-    mscluster_weighted_avg_purity = calculate_weighted_average_purity(mscluster_purity, mscluster_size)
-    falcon_weighted_avg_purity = calculate_weighted_average_purity(falcon_purity, falcon_size)
+    mscluster_weighted_avg_purity = sum(mscluster_purity)/len(mscluster_purity)
+    falcon_weighted_avg_purity = sum(falcon_purity)/len(falcon_purity)
     # online_falcon_weighted_avg_purity = calculate_weighted_average_purity(online_falcon_purity, online_falcon_size)
-    maracluster_weighted_avg_purity = calculate_weighted_average_purity(maracluster_purity, maracluster_size)
+    maracluster_weighted_avg_purity = sum(maracluster_purity)/len(maracluster_purity)
+
+    # mscluster_weighted_avg_purity = calculate_weighted_average_purity(mscluster_purity, mscluster_size)
+    # falcon_weighted_avg_purity = calculate_weighted_average_purity(falcon_purity, falcon_size)
+    # # online_falcon_weighted_avg_purity = calculate_weighted_average_purity(online_falcon_purity, online_falcon_size)
+    # maracluster_weighted_avg_purity = calculate_weighted_average_purity(maracluster_purity, maracluster_size)
 
     print("Weighted Average Purity for MSCluster:", mscluster_weighted_avg_purity)
     print("Weighted Average Purity for Falcon:", falcon_weighted_avg_purity)

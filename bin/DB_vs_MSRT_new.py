@@ -60,7 +60,7 @@ def create_matching_network(cluster, method):
         spec1 = cluster.iloc[index1]
         spec2 = cluster.iloc[index2]
         if spec1[method_dic[method]['filename']] == spec2[method_dic[method]['filename']]:
-            if abs(spec1[method_dic[method]['mass']]-spec2[method_dic[method]['mass']])<=0.01 and abs(spec1[method_dic[method]['rt_time']]-spec2[method_dic[method]['rt_time']])<=10:
+            if abs(spec1[method_dic[method]['mass']]-spec2[method_dic[method]['mass']])<=0.01 and abs(spec1[method_dic[method]['rt_time']]-spec2[method_dic[method]['rt_time']])<=0.5:
                 node_a = f"{spec1[method_dic[method]['filename']]}_{spec1[method_dic[method]['scan']]}"
                 node_b = f"{spec2[method_dic[method]['filename']]}_{spec2[method_dic[method]['scan']]}"
                 G.add_edge(node_a,node_b)
@@ -243,7 +243,7 @@ if __name__ == "__main__":
     database_results = database_results[database_results['DB:EValue'] < 0.002]
 
     mscluster_results =  pd.read_csv('../data/Combine_results/mscluster_clusterinfo.tsv',sep='\t')
-    falcon_results = pd.read_csv('../data/Combine_results/Falcon_cluster_info.tsv', sep='\t')
+    falcon_results = pd.read_csv('/home/user/LabData/XianghuData/Falcon_Cluster_Benchmark/combine_0.3/output_summary/cluster_info.tsv', sep='\t')
     maracluster_results = pd.read_csv('../data/Combine_results/MaRaCluster_processed.clusters_p10.tsv', sep='\t')
 
 
@@ -315,7 +315,7 @@ if __name__ == "__main__":
     fig, ax = plt.subplots()
 
     # Plot the heatmap
-    im = ax.imshow(heatmap, extent=[0, 1, 0, 1], cmap='plasma', norm=LogNorm(), origin='lower')
+    im = ax.imshow(heatmap, extent=[0, 1, 0, 1], cmap='plasma_r', norm=LogNorm(), origin='lower')
 
     # Add a colorbar
     cbar = plt.colorbar(im)

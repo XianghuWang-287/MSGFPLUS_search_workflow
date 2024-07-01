@@ -4,6 +4,7 @@ from sklearn.metrics import adjusted_rand_score, adjusted_mutual_info_score
 import matplotlib.pyplot as plt
 import numpy as np
 import copy
+import os
 
 def calculate_cluster_purity(cluster):
     total_spectra = len(cluster)
@@ -25,6 +26,7 @@ def mscluster_purity(cluster_results,database_results):
                                         right_on=['MzIDFileName', 'ScanNumber'], how='inner')
     merged_data['Peptide'] = merged_data['Peptide'].str.replace('I', 'L')
     merged_data = merged_data[merged_data['Peptide'] != 'unknown']
+    merged_data.to_csv('PXD023047_merge.csv', index=False)
     return merged_data.groupby('#ClusterIdx').apply(calculate_cluster_purity),merged_data.groupby('#ClusterIdx').size()
 
 def falcon_purity(cluster_results,database_results):
@@ -77,7 +79,7 @@ mscluster_results = pd.read_csv('../data/results/nf_output/clustering/clusterinf
 falcon_results = pd.read_csv('../data/cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
 online_falcon_results = pd.read_csv('../data/online_cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
 maracluster_results= pd.read_csv('./processed_clusters.tsv', sep='\t')
-database_results = pd.read_csv('./filtered.tsv', sep='\t')
+database_results = pd.read_csv('./PXD023047_filtered.tsv', sep='\t')
 
 
 
