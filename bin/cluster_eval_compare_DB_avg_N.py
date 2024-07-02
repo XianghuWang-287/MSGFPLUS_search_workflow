@@ -1,3 +1,5 @@
+import os.path
+
 import pandas as pd
 from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.metrics import adjusted_rand_score, adjusted_mutual_info_score
@@ -39,7 +41,8 @@ def falcon_purity(cluster_results,database_results):
     return merged_data.groupby('cluster').apply(calculate_cluster_purity), merged_data.groupby('cluster').size()
 
 def maracluster_purity(cluster_results,database_results):
-    database_results['MzIDFileName'] = 'mzML/' + database_results['MzIDFileName']
+    database_results['MzIDFileName'] = database_results['MzIDFileName'].apply(os.path.basename)
+    cluster_results['filename'] = cluster_results['filename']+'.mzML'
     merged_data = cluster_results.merge(database_results, left_on=['filename', 'scan'],
                                         right_on=['MzIDFileName', 'ScanNumber'], how='inner')
     merged_data['Peptide'] = merged_data['Peptide'].str.replace('I', 'L')
@@ -66,6 +69,8 @@ def online_falcon_purity(cluster_results,database_results):
     return merged_data.groupby('cluster').apply(calculate_cluster_purity), merged_data.groupby('cluster').size()
 
 def calculate_weighted_average_purity(purity, cluster_size):
+    if cluster_size.sum() == 0:
+        return 0
     weighted_purity = (purity * cluster_size).sum() / cluster_size.sum()
     return weighted_purity
 
@@ -84,15 +89,15 @@ def calculate_n50(cluster_size, total_spectra):
 
 
 # Load cluster results
-mscluster_results = pd.read_csv('/home/user/LabData/XianghuData/MsCluster_Workflow/Combine_test_0.005/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
-falcon_results = pd.read_csv('/home/user/LabData/XianghuData/Falcon_Cluster_Benchmark/combine_0.3/output_summary/cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
-maracluster_results= pd.read_csv('../data/Combine_results/maracluster/MaRaCluster_processed.clusters_p5_enriched.tsv', sep='\t')
-database_results = pd.read_csv('./Combine_test_filtered.tsv')  # Adjust file path and format accordingly
+mscluster_results = pd.read_csv('/home/user/LabData/XianghuData/Classical_Networking_Workflow/PXD023047_0.000001/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+falcon_results = pd.read_csv('/home/user/LabData/XianghuData/Falcon_Cluster_Benchmark/PXD023047_0.6/output_summary/cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
+maracluster_results= pd.read_csv('../data/PXD023047/maracluster/MaRaCluster_processed.clusters_p2_enriched.tsv', sep='\t')
+database_results = pd.read_csv('./PXD023047_filtered.tsv', sep='\t')  # Adjust file path and format accordingly
 
-mscluster_n50 = calculate_n50(mscluster_results.groupby('#ClusterIdx').size(),286410)
-falcon_n50 = calculate_n50(falcon_results.groupby('cluster').size(),286410)
+mscluster_n50 = calculate_n50(mscluster_results.groupby('#ClusterIdx').size(),109333)
+falcon_n50 = calculate_n50(falcon_results.groupby('cluster').size(),109333)
 # online_falcon_n50 = calculate_n50(online_falcon_size,109333)
-maracluster_n50 = calculate_n50(maracluster_results.groupby('cluster').size(),286410)
+maracluster_n50 = calculate_n50(maracluster_results.groupby('cluster').size(),109333)
 
 
 print("N50 value for MSCluster:", mscluster_n50)

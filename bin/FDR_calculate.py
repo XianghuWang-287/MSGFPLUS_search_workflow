@@ -53,7 +53,7 @@ def extract_psm_info(psm):
 
 
 # Path to the output filtered TSV file
-output_filtered_tsv_file_path = './PXD021518_filtered.tsv'
+output_filtered_tsv_file_path = '../data/PXD21518/PXD021518_filtered.tsv'
 
 # Open the TSV file and write the header
 with open(output_filtered_tsv_file_path, 'w', newline='') as tsv_file:

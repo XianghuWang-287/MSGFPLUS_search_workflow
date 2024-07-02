@@ -198,7 +198,7 @@ def calculate_cluster_purity(cluster, matching_pairs_set,method):
 
     return max_fraction
 
-def calculate_cluster_purity_weighted_avg(cluster, matching_pairs_set,method):
+def calculate_cluster_purity_weighted_avg(cluster,method):
     if len(cluster) == 1:
         return 1
     # Create a matching network considering only matching pairs with the same filename and scan number
@@ -269,17 +269,17 @@ def assign_size_range_bin(size):
             upper_limit *= 2
         return f"{upper_limit//2+1} to {upper_limit}"
 
-def mscluster_purity(cluster_results,matching_pairs_set):
+def mscluster_purity(cluster_results):
     #handle the new version workflow filename issue
     cluster_results['#Filename'] = cluster_results['#Filename'].str.replace('input_spectra', 'mzML')
 
-    return cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set,'mscluster')), cluster_results.groupby('#ClusterIdx').size()
+    return cluster_results.groupby('#ClusterIdx').apply(lambda x: calculate_cluster_purity_weighted_avg(x,'mscluster')), cluster_results.groupby('#ClusterIdx').size()
 
-def falcon_purity(cluster_results,matching_pairs_set):
-    return cluster_results.groupby('cluster').apply(lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set,'falcon')), cluster_results.groupby('cluster').size()
-def maracluster_purity(cluster_results,matching_pairs_set):
+def falcon_purity(cluster_results):
+    return cluster_results.groupby('cluster').apply(lambda x: calculate_cluster_purity_weighted_avg(x, 'falcon')), cluster_results.groupby('cluster').size()
+def maracluster_purity(cluster_results):
     return cluster_results.groupby('cluster').apply(
-        lambda x: calculate_cluster_purity_weighted_avg(x, matching_pairs_set, 'maracluster')), cluster_results.groupby(
+        lambda x: calculate_cluster_purity_weighted_avg(x,  'maracluster')), cluster_results.groupby(
         'cluster').size()
 def generate_matching_pairs_set_file(folder_path,data_folder_path):
     matching_pairs_all_files = []
@@ -350,24 +350,19 @@ def calculate_n50(cluster_size, total_spectra):
     return n50
 
 if __name__ == "__main__":
-    folder_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/Combine_test/mzML'
-    mscluster_results = pd.read_csv(
-        '/home/user/LabData/XianghuData/Classical_Networking_Workflow/Combine_test_0.01/clustering/clusterinfo.tsv',
-        sep='\t')  # Adjust file path and format accordingly
-    falcon_results = pd.read_csv(
-        '/home/user/research/Falcon_Cluster_workflow/combine_0.3/output_summary/cluster_info.tsv',
-        sep='\t')  # Adjust file path and format accordingly
-    maracluster_results = pd.read_csv(
-        '../data/Combine_results/maracluster/MaRaCluster_processed.clusters_p30_enriched.tsv', sep='\t')
+    # folder_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/Combine_test/mzML'
+    mscluster_results = pd.read_csv('/home/user/LabData/XianghuData/Classical_Networking_Workflow/PXD023047_0.00001/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
+    falcon_results = pd.read_csv('/home/user/LabData/XianghuData/Falcon_Cluster_Benchmark/PXD023047_0.6/output_summary/cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
+    maracluster_results = pd.read_csv('../data/PXD023047/maracluster/MaRaCluster_processed.clusters_p2_enriched.tsv',sep='\t')
     # mscluster_results = pd.read_csv('../data/results/nf_output/clustering/clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
     # falcon_results = pd.read_csv('../data/PXD023047/falcon/falcon_cluster_info_0.3.tsv',sep='\t')  # Adjust file path and format accordingly
     # maracluster_results= pd.read_csv('../data/PXD023047/maracluster/MaRaCluster_processed.clusters_p5_enriched.tsv', sep='\t')
     # falcon_results = pd.read_csv('../data/cluster_info.tsv', sep='\t')  # Adjust file path and format accordingly
     # maracluster_results= pd.read_csv('../data/PXD023047/maracluster/MaRaCluster_processed.clusters_p10_enriched.tsv', sep='\t')
-    mscluster_n50 = calculate_n50(mscluster_results.groupby('#ClusterIdx').size(), 395743)
-    falcon_n50 = calculate_n50(falcon_results.groupby('cluster').size(), 395743)
+    mscluster_n50 = calculate_n50(mscluster_results.groupby('#ClusterIdx').size(), 109333)
+    falcon_n50 = calculate_n50(falcon_results.groupby('cluster').size(), 109333)
     # online_falcon_n50 = calculate_n50(online_falcon_size,109333)
-    maracluster_n50 = calculate_n50(maracluster_results.groupby('cluster').size(), 395743)
+    maracluster_n50 = calculate_n50(maracluster_results.groupby('cluster').size(), 109333)
 
     # mscluster_results = pd.read_csv('../data/Combine_results/mscluster_clusterinfo.tsv',sep='\t')  # Adjust file path and format accordingly
     # falcon_results = pd.read_csv('../data/Combine_results/Falcon_cluster_info.tsv',sep='\t')  # Adjust file path and format accordingly
@@ -379,21 +374,21 @@ if __name__ == "__main__":
     print("mscluster cluster number before merge:", len(mscluster_results.groupby('#ClusterIdx').size()))
     print("falcon cluster number before merge:", len(falcon_results.groupby('cluster').size()))
     print("maracluster cluster number before merge:", len(maracluster_results.groupby('cluster').size()))
-    database_results = pd.read_csv('./Combine_test_filtered.tsv', sep='\t')  # Adjust file path and format accordingly
-    #database_results = database_results[database_results['DB:EValue'] < 0.002]
-    database_results['Peptide'] = database_results['Peptide'].str.replace('I', 'L')
-    print("number of different piptides: ",len(database_results.groupby('Peptide').size()))
+    # database_results = pd.read_csv('./Combine_test_filtered.tsv', sep='\t')  # Adjust file path and format accordingly
+    # #database_results = database_results[database_results['DB:EValue'] < 0.002]
+    # database_results['Peptide'] = database_results['Peptide'].str.replace('I', 'L')
+    # print("number of different piptides: ",len(database_results.groupby('Peptide').size()))
 
 
-    data_folder_path = os.path.dirname(os.getcwd()) + '/data'
-    matching_pairs_set_filename = 'matching_pairs_set.pkl'
-    if matching_pairs_set_filename not in os.listdir(data_folder_path):
-        print('matching_pairs_set_filename not exist.')
-        print('Creating matching_pairs_set_filename...')
-        matching_pairs_set = generate_matching_pairs_set_file(folder_path,data_folder_path)
-    else:
-        with open(data_folder_path+'/'+matching_pairs_set_filename, 'rb') as file:
-            matching_pairs_set = pickle.load(file)
+    # data_folder_path = os.path.dirname(os.getcwd()) + '/data'
+    # matching_pairs_set_filename = 'matching_pairs_set.pkl'
+    # if matching_pairs_set_filename not in os.listdir(data_folder_path):
+    #     print('matching_pairs_set_filename not exist.')
+    #     print('Creating matching_pairs_set_filename...')
+    #     matching_pairs_set = generate_matching_pairs_set_file(folder_path,data_folder_path)
+    # else:
+    #     with open(data_folder_path+'/'+matching_pairs_set_filename, 'rb') as file:
+    #         matching_pairs_set = pickle.load(file)
     # mscluster_results_copy = mscluster_results.copy()
     # mscluster_results = mscluster_merge(mscluster_results,copy.copy(database_results))
     # falcon_results = falcon_merge(falcon_results,copy.copy(database_results))
@@ -404,9 +399,9 @@ if __name__ == "__main__":
     print("mscluster cluster number after merge:", len(mscluster_results.groupby('#ClusterIdx').size()))
     print("falcon cluster number after merge:", len(falcon_results.groupby('cluster').size()))
     print("maracluster cluster number after merge:",len(maracluster_results.groupby('cluster').size()))
-    mscluster_purity, mscluster_size = mscluster_purity(mscluster_results, matching_pairs_set)
-    falcon_purity, falcon_size = falcon_purity(falcon_results,matching_pairs_set)
-    maracluster_purity, maracluster_size = maracluster_purity(maracluster_results,matching_pairs_set)
+    mscluster_purity, mscluster_size = mscluster_purity(mscluster_results)
+    falcon_purity, falcon_size = falcon_purity(falcon_results)
+    maracluster_purity, maracluster_size = maracluster_purity(maracluster_results)
     print('falcon size:',len(falcon_results))
     print('mscluster size:',len(mscluster_results))
     print('maracluster size:',len(maracluster_results))
