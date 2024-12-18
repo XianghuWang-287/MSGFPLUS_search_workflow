@@ -3,6 +3,7 @@ import os
 import sys
 import argparse
 import pymzml
+from tqdm import tqdm
 def process_maracluster_results(input_file):
     # Read the input file, considering the format described
     # Each spectrum is on a new line, clusters are separated by an empty line
@@ -30,7 +31,7 @@ def extract_ms1_data(mzml_file):
 def enrich_cluster_results(cluster_results,mzml_folder_path):
     cluster_results['precursor_mz'] = pd.NA
     cluster_results['retention_time'] = pd.NA
-    for filename in os.listdir(mzml_folder_path):
+    for filename in tqdm(os.listdir(mzml_folder_path)):
         if filename.endswith(".mzML"):
             mzml_file_path = os.path.join(mzml_folder_path, filename)
             ms1_data = extract_ms1_data(mzml_file_path)
@@ -43,10 +44,11 @@ def enrich_cluster_results(cluster_results,mzml_folder_path):
     return cluster_results
 
 # Specify the input and output file paths
-input_file = '/home/user/LabData/XianghuData/metabolomics_clustering_data/MSV000093033/peak/maracluster_output_10/MaRaCluster.clusters_p10.tsv'
-output_file = '../data/MSV000093033/maracluster_new/MaRaCluster_processed.clusters_p10_enriched.tsv'
-folder_path = '/home/user/LabData/XianghuData/metabolomics_clustering_data/MSV000093033/peak/mzml'
+input_file = '/home/user/LabData/XianghuData/MS_Cluster_datasets/Combine_test_sample/maracluster_output/MaRaCluster.clusters_p4.tsv'
+output_file = '/home/user/LabData/XianghuData/MS_Cluster_datasets/Combine_test_sample/maracluster_output/MaRaCluster_processed.clusters_p4_enriched.tsv'
+folder_path = '/home/user/LabData/XianghuData/MS_Cluster_datasets/Combine_test_sample/mzML'
 # Call the function with the specified file paths
+print(input_file)
 cluster_results = process_maracluster_results(input_file)
 cluster_results = enrich_cluster_results(cluster_results,folder_path)
 print(cluster_results.head())

@@ -10,6 +10,7 @@ import networkx as nx
 from collections import Counter
 from matplotlib.colors import LogNorm
 from collections import defaultdict
+from sklearn.metrics import r2_score
 
 method_dic = {'mscluster':{'filename':'#Filename','scan':'#Scan','mass':'#ParentMass','rt_time':'#RetTime'},
               'falcon':{'filename':'filename','scan':'scan','mass':'precursor_mz','rt_time':'retention_time'},
@@ -391,6 +392,12 @@ if __name__ == "__main__":
 
     x= cluster_purity_db
     y= cluster_purity_ms1
+    y_lower = x - 0.1
+    y_upper = x + 0.1
+    y_pred = np.clip(y, y_lower, y_upper)  # Clip values to ensure they are within ±0.1 range
+    r2 = r2_score(y, y_pred)
+    print(f'R^2 between MS1 and DB purity (y=x): {r2:.4f}')
+
 
     heatmap, xedges, yedges = np.histogram2d(x, y, bins=20, range=[[0, 1], [0, 1]])
 

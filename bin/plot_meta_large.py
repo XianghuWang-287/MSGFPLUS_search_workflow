@@ -12,7 +12,7 @@ maracluster_y = [0.9999958737481095,0.9999868134694759,0.9999930406241849,0.9999
 
 
 
-plt.figure(figsize=(10, 6))
+plt.figure(figsize=(8, 6))
 
 # Plot scatter points
 # plt.scatter(valid_purities, valid_n50, color='blue', label='Methods_Default_MSRT')
@@ -21,17 +21,18 @@ plt.plot(maracluster_y, maracluster_x, 'o-', color='green', label='MaraCluster_M
 plt.plot(mscluster_y, mscluster_x, 'o-', color='orange', label='MSCluster_MSRT')
 
 # Adjust axis labels
-plt.xlabel('Average Purity', fontsize=12)
-plt.ylabel('N50 Value', fontsize=12)
-plt.yscale('log')
-
+plt.xlabel('Average Purity', fontsize=14)
+plt.ylabel('N10 Value', fontsize=14)
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
 # Reverse the x-axis
 plt.gca().invert_xaxis()
+plt.xlim(right = 0.99)
 
 
 # Add legend, grid, and layout adjustments
-plt.legend(loc='lower right', fontsize=12)
-plt.title("Clustering Benchmark Results on Metabolomics Dataset")
+plt.legend(loc='lower right', fontsize=14)
+plt.title("Clustering Benchmark Results on Metabolomics Dataset",fontsize=16)
 plt.grid(True)
 plt.tight_layout()
 plt.show()

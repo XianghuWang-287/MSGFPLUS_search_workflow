@@ -19,7 +19,7 @@ def get_msgf_evalue(psm):
     except (KeyError, ValueError):
         return float('inf')
 
-input_mzid_file_path = '/home/user/LabData/XianghuData/MSGFPLUS_search_workflow/nf_output'
+input_mzid_file_path = '/home/user/LabData/XianghuData/MSGFPLUS_search_workflow/MALDI_ID'
 
 mzid_files = [os.path.join(input_mzid_file_path,f) for f in os.listdir(input_mzid_file_path) if f.lower().endswith('.mzid')]
 # Filter PSMs based on the desired spectrum-level FDR threshold
@@ -53,7 +53,7 @@ def extract_psm_info(psm):
 
 
 # Path to the output filtered TSV file
-output_filtered_tsv_file_path = '../data/PXD21518/PXD021518_filtered.tsv'
+output_filtered_tsv_file_path = '../data/MALDI_FDR.tsv'
 
 # Open the TSV file and write the header
 with open(output_filtered_tsv_file_path, 'w', newline='') as tsv_file:

@@ -2,7 +2,7 @@ from urllib.request import urlretrieve
 from pyopenms import *
 from tqdm import tqdm
 import pandas as pd
-searchdb = "/home/user/LabData/XianghuData/MS_Cluster_datasets/DB_ID/UP000006548_3702.fasta"
+searchdb = "/home/user/LabData/XianghuData/MALDI_Data/Human_uniprotkb_proteome_UP000005640_2024_09_21.fasta"
 
 targets = list()
 decoys = list()
@@ -15,5 +15,5 @@ for entry in tqdm(targets):
     rev_entry.sequence = decoy_generator.reverseProtein(aas).toString() # reverse
     decoys.append(rev_entry)
 
-target_decoy_database = "../data/search_td_mouse.fasta"
+target_decoy_database = "../data/Human_uniprotkb_proteome_td.fasta"
 FASTAFile().store(target_decoy_database, targets + decoys)

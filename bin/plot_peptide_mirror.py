@@ -50,7 +50,7 @@ for i, mass in enumerate(b_ions_A):
         intensity_index = list(masses_A).index(closest_mass)
         intensity = intensities_A[intensity_index]
         plt.stem([closest_mass], [intensity], linefmt='green', markerfmt='go', basefmt=' ', label=f'b{i+1}+' if i == 0 else "")
-        plt.annotate(f'b{i+1}+', (closest_mass, intensity), textcoords="offset points", xytext=(0, 5), ha='center', fontsize=8, color='green')
+        plt.annotate(f'b{i+1}+', (closest_mass, intensity), textcoords="offset points", xytext=(0, 5), ha='center', fontsize=12, color='green')
 
 for i, mass in enumerate(y_ions_A):
     closest_mass = find_closest_mass(masses_A, mass, tolerance=0.01)
@@ -58,7 +58,7 @@ for i, mass in enumerate(y_ions_A):
         intensity_index = list(masses_A).index(closest_mass)
         intensity = intensities_A[intensity_index]
         plt.stem([closest_mass], [intensity], linefmt='red', markerfmt='ro', basefmt=' ', label=f'y{i+1}+' if i == 0 else "")
-        plt.annotate(f'y{i+1}+', (closest_mass, intensity), textcoords="offset points", xytext=(0, 5), ha='center', fontsize=8, color='red')
+        plt.annotate(f'y{i+1}+', (closest_mass, intensity), textcoords="offset points", xytext=(0, 5), ha='center', fontsize=12, color='red')
 
 for i, mass in enumerate(a_ions_A):
     closest_mass = find_closest_mass(masses_A, mass, tolerance=0.01)
@@ -66,7 +66,7 @@ for i, mass in enumerate(a_ions_A):
         intensity_index = list(masses_A).index(closest_mass)
         intensity = intensities_A[intensity_index]
         plt.stem([closest_mass], [intensity], linefmt='orange', markerfmt='yo', basefmt=' ', label=f'a{i+1}+' if i == 0 else "")
-        plt.annotate(f'a{i+1}+', (closest_mass, intensity), textcoords="offset points", xytext=(0, 5), ha='center', fontsize=8, color='orange')
+        plt.annotate(f'a{i+1}+', (closest_mass, intensity), textcoords="offset points", xytext=(0, 5), ha='center', fontsize=12, color='orange')
 
 plt.axhline(0, color='black', linewidth=0.5)
 

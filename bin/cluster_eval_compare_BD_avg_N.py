@@ -1,6 +1,4 @@
 import pandas as pd
-from sklearn.metrics import precision_score, recall_score, f1_score
-from sklearn.metrics import adjusted_rand_score, adjusted_mutual_info_score
 import matplotlib.pyplot as plt
 import numpy as np
 import copy

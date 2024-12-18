@@ -13,6 +13,9 @@ mscluster_y_MSRT = [0.951919117750166,0.9399324174740764,0.9169879561130767,0.89
 falcon_x_DB = [96,145,203,273,362]
 falcon_y_DB = [0.9867360959609297,0.9814112791967081,0.9753249780873406,0.9680188211513892,0.9580253170259252]
 
+Online_falcon_x_DB = [95]
+Online_falcon_y_DB = [0.9893204528266213]
+
 
 maracluster_x_DB = [25,32,43,59,82,128]
 maracluster_y_DB = [0.9974112830248503,0.9958328450974387,0.993829026518348,0.9912206159945094,0.9878766514271422,0.9826657384440718]
@@ -28,10 +31,12 @@ plt.figure(figsize=(10, 6))
 # plt.scatter(valid_purities, valid_n50, color='blue', label='Methods_Default_MSRT')
 plt.plot(falcon_y, falcon_x, 'o-', color='red', label='Falcon_MSRT')
 plt.plot(maracluster_y, maracluster_x, 'o-', color='green', label='MaraCluster_MSRT')
+plt.plot(mscluster_y_MSRT, mscluster_x_MSRT, 'o-', color='orange', label='MSCluster_MSRT')
 plt.plot(falcon_y_DB, falcon_x_DB, '^-', color='red', label='Falcon_DB')
 plt.plot(maracluster_y_DB, maracluster_x_DB, '^-', color='green', label='MaraCluster_DB')
 plt.plot(mscluster_y_DB, mscluster_x_DB, '^-', color='orange', label='MSCluster_DB')
-plt.plot(mscluster_y_MSRT, mscluster_x_MSRT, 'o-', color='orange', label='MSCluster_MSRT')
+plt.plot(Online_falcon_y_DB,Online_falcon_x_DB, marker = '*', color='red', label='OnlineFalcon_DB')
+
 
 # Adjust axis labels
 plt.xlabel('Average Purity', fontsize=12)
@@ -39,10 +44,11 @@ plt.ylabel('N10 Value', fontsize=12)
 
 # Reverse the x-axis
 plt.gca().invert_xaxis()
+plt.xlim(right = 0.925,left = 1)
 
 
 # Add legend, grid, and layout adjustments
-plt.legend(loc='lower right', fontsize=12)
+plt.legend(loc='upper right', fontsize=12)
 plt.title("Clustering Benchmark Results on Joint Proteomics Dataset")
 plt.grid(True)
 plt.tight_layout()

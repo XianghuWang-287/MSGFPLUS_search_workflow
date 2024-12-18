@@ -43,9 +43,9 @@ positions = np.arange(len(df.index))
 
 # Bar plots for Cluster Count
 bar_width = 0.2  # width of the bars
-ax1.bar(positions - bar_width, df['mscluster_Count'], width=bar_width, label='mscluster Count')
-ax1.bar(positions, df['falcon_Count'], width=bar_width, label='falcon Count')
-ax1.bar(positions + bar_width, df['maracluster_Count'], width=bar_width, label='maracluster Count')
+ax1.bar(positions - bar_width, df['mscluster_Count'], width=bar_width,color= 'orange', label='mscluster Count')
+ax1.bar(positions, df['falcon_Count'], width=bar_width,color= 'red', label='falcon Count')
+ax1.bar(positions + bar_width, df['maracluster_Count'], width=bar_width,color= 'green', label='maracluster Count')
 
 # Set labels and title
 ax1.set_xlabel('Cluster Size Range')
@@ -56,16 +56,16 @@ ax1.set_xticks(positions)
 ax1.set_xticklabels(df.index, rotation=45)
 ax1.tick_params(axis='x', labelsize=14)  # Increase X tick label size
 ax1.tick_params(axis='y', labelsize=14)  # Increase Y tick label size for ax1
-ax1.legend(loc='upper left')
+ax1.legend(loc='lower left', bbox_to_anchor=(0, 1))
 
 # Create another y-axis for the Purity
 ax2 = ax1.twinx()
-ax2.plot(positions, df['mscluster_Purity'], marker='o', label='mscluster Purity')
-ax2.plot(positions, df['falcon_Purity'], marker='o', label='falcon Purity')
-ax2.plot(positions, df['maracluster_Purity'], marker='o', label='maracluster Purity')
+ax2.plot(positions, df['mscluster_Purity'], marker='o',color= 'orange', label='mscluster Purity')
+ax2.plot(positions, df['falcon_Purity'], marker='o',color= 'red', label='falcon Purity')
+ax2.plot(positions, df['maracluster_Purity'], marker='o',color= 'green', label='maracluster Purity')
 ax2.tick_params(axis='y', labelsize=14)
 ax2.set_ylabel('Average Purity')
-ax2.legend(loc='lower left')
+ax2.legend(loc='lower right', bbox_to_anchor=(1, 1))
 
 # Show grid and plot
 ax1.grid(True)
